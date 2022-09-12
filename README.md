@@ -25,7 +25,7 @@ This library adds two new fields: `NestedFormField`, which can wrap forms as fie
 and thus provide validation for, e.g., a JSON field, and `DynamicArrayField`, which can wrap
 fields, including `NestedFormField`, as dynamically expandable lists of fields.
 
-![Example image](./docs/img/example.png)
+![Example image](https://github.com/MrThearMan/django-subforms/raw/main/docs/img/example.png)
 
 [coverage-badge]: https://coveralls.io/repos/github/MrThearMan/django-subforms/badge.svg?branch=main
 [status-badge]: https://img.shields.io/github/workflow/status/MrThearMan/django-subforms/Test
