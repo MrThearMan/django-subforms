@@ -1,6 +1,6 @@
 import copy
 from itertools import chain
-from typing import Any
+from typing import Any, Dict, List, Type, Union
 
 from django import forms
 from django.contrib.postgres.utils import prefix_validation_error
@@ -25,7 +25,7 @@ class DynamicArrayField(forms.Field):
 
     def __init__(
         self,
-        subfield: type[forms.Field] | forms.Field = forms.CharField,
+        subfield: Union[Type[forms.Field], forms.Field] = forms.CharField,
         **kwargs,
     ):
         self.subfield: forms.Field = subfield() if isinstance(subfield, type) else copy.deepcopy(subfield)
@@ -33,7 +33,7 @@ class DynamicArrayField(forms.Field):
         kwargs.setdefault("widget", DynamicArrayWidget(subwidget=self.subfield.widget))
         super().__init__(**kwargs)
 
-    def clean(self, value: list[Any]) -> list[Any]:
+    def clean(self, value: List[Any]) -> List[Any]:
         cleaned_data: list[Any] = []
         errors: list[ValidationError] = []
 
@@ -56,7 +56,7 @@ class DynamicArrayField(forms.Field):
         if not value:
             cleaned_data = self.default() if callable(self.default) else self.default
 
-        if cleaned_data is None and self.initial is not None:
+        if cleaned_data is None and self.initial is not None:  # pragma: no cover
             cleaned_data = self.initial() if callable(self.initial) else self.initial
 
         if errors:
@@ -67,7 +67,7 @@ class DynamicArrayField(forms.Field):
 
         return cleaned_data
 
-    def has_changed(self, initial, data):
+    def has_changed(self, initial: Dict[str, Any], data: Dict[str, Any]) -> bool:  # pragma: no cover
         if not data and not initial:
             return False
         return super().has_changed(initial, data)
@@ -76,7 +76,7 @@ class DynamicArrayField(forms.Field):
 class NestedFormField(forms.MultiValueField):
     """Form field that can wrap other forms as nested fields."""
 
-    def __init__(self, subform: type[forms.Form] | forms.Form, **kwargs):
+    def __init__(self, subform: Union[Type[forms.Form], forms.Form], **kwargs):
         self.subform: forms.Form = subform() if isinstance(subform, type) else copy.deepcopy(subform)
         kwargs.setdefault("require_all_fields", False)
         super().__init__(
@@ -85,7 +85,7 @@ class NestedFormField(forms.MultiValueField):
             **kwargs,
         )
 
-    def clean(self, value):
+    def clean(self, value: any) -> Dict[str, Any]:
         clean_data = []
         errors = []
 
@@ -110,7 +110,7 @@ class NestedFormField(forms.MultiValueField):
                     field_value[nested_key] = value[key]
 
             if field_value in self.empty_values:
-                if self.require_all_fields:
+                if self.require_all_fields:  # pragma: no cover
                     if self.required:
                         raise ValidationError(self.error_messages["required"], code="required")
                 elif field.required:
@@ -137,5 +137,5 @@ class NestedFormField(forms.MultiValueField):
         self.run_validators(out)
         return out
 
-    def compress(self, data_list):
+    def compress(self, data_list) -> Dict[str, Any]:
         return {key: data_list[i] for i, key in enumerate(self.subform.fields.keys())}

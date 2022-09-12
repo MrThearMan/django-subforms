@@ -1,5 +1,5 @@
 import copy
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Type, Union
 
 from django import forms
 from django.http import QueryDict
@@ -22,15 +22,15 @@ class DynamicArrayWidget(forms.TextInput):
 
     def __init__(
         self,
-        subwidget: type[forms.Widget] | forms.Widget = forms.TextInput,
+        subwidget: Union[Type[forms.Widget], forms.Widget] = forms.TextInput,
         default: Any = "",
-        attrs: Optional[dict[str, Any]] = None,
+        attrs: Optional[Dict[str, Any]] = None,
     ):
         self.subwidget = subwidget() if isinstance(subwidget, type) else copy.deepcopy(subwidget)
         self.default = default
         super().__init__(attrs=attrs)
 
-    def get_context(self, name: str, value: list[Any] | None, attrs: dict) -> dict:
+    def get_context(self, name: str, value: Optional[List[Any]], attrs: Dict[str, Any]) -> Dict[str, Any]:
         context = super().get_context(name, value, attrs)
         final_attrs = context["widget"]["attrs"]
         id_ = final_attrs.get("id")
@@ -47,35 +47,34 @@ class DynamicArrayWidget(forms.TextInput):
         context["widget"]["subwidgets"] = subwidgets
         return context
 
-    def value_from_datadict(self, data: QueryDict, files: MultiValueDict, name: str) -> list:
+    def value_from_datadict(self, data: QueryDict, files: MultiValueDict, name: str) -> List[Any]:
         try:
-            ret = []
             getter = data.getlist
+        except AttributeError:  # pragma: no cover
+            return data.get(name)
 
-            if name in data:
-                ret = [value for value in getter(name) if value]
-            else:
-                for key in data:
-                    if name not in key:
-                        continue
+        ret = []
+        if name in data:
+            ret = [value for value in getter(name) if value]
+        else:
+            for key in data:
+                if name not in key:
+                    continue
 
-                    nested_key = key.replace(f"{name}_", "", 1)
+                nested_key = key.replace(f"{name}_", "", 1)
 
-                    for i, value in enumerate(getter(key)):
-                        if i >= len(ret):
-                            ret.append({})
+                for i, value in enumerate(getter(key)):
+                    if i >= len(ret):
+                        ret.append({})
 
-                        ret[i][nested_key] = value
-
-        except AttributeError:
-            ret = data.get(name)
+                    ret[i][nested_key] = value
 
         return ret
 
     def value_omitted_from_data(self, data: QueryDict, files: MultiValueDict, name: str) -> bool:
         return False
 
-    def format_value(self, value: list[Any] | None) -> Any:
+    def format_value(self, value: Optional[List[Any]]) -> Any:
         default = self.default() if callable(self.default) else self.default
         return value or [default]
 
@@ -87,12 +86,12 @@ class NestedFormWidget(forms.MultiWidget):
     class Media:
         css = {"all": ["css/nested.css"]}
 
-    def __init__(self, form_class: type[forms.Form], attrs: Optional[dict[str, Any]] = None):
+    def __init__(self, form_class: Type[forms.Form], attrs: Optional[Dict[str, Any]] = None):
         self.subform = form_class()
         widgets = {name: bound_field.widget for name, bound_field in self.subform.fields.items()}
         super().__init__(widgets=widgets, attrs=attrs)
 
-    def decompress(self, value):
+    def decompress(self, value: Any) -> List[Any]:
         if isinstance(value, Mapping):
             return [value.get(name) for name in self.subform.fields.keys()]
         return [None for _ in self.subform.fields]
