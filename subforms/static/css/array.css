@@ -1,0 +1,22 @@
+
+.related-widget-wrapper {
+    float: none!important;
+    overflow: hidden;
+}
+
+.dynamic-array .dynamic-array-item {
+  display: flex;
+  align-items: center;
+}
+
+.dynamic-array .remove-array-item {
+  height: 15px;
+  display: flex;
+  align-items: center;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+.dynamic-array .add-array-item {
+  cursor: pointer;
+}

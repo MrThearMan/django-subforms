@@ -1,0 +1,156 @@
+[tool.poetry]
+name = "django-subforms"
+version = "0.1.0"
+description = "Wrap django forms as fields and fields as dynamic arrays."
+authors = [
+    "Matti Lamppu <lamppu.matti.akseli@gmail.com>",
+]
+packages = [
+    { include = "subforms" },
+]
+license = "MIT"
+readme = "README.md"
+homepage = "https://mrthearman.github.io/django-subforms/"
+repository = "https://github.com/MrThearMan/django-subforms"
+keywords = [
+    "django",
+    "sub",
+    "form",
+    "nested",
+    "widget",
+    "json",
+    "array",
+    "dynamic",
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+]
+include = [
+    "README.md",
+    "LICENSE",
+]
+exclude = [
+    "tests",
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/MrThearMan/django-subforms/issues"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4"
+Django = "^4.1.1"
+
+[tool.poetry.group.test.dependencies]
+pytest = "7.1.2"
+pytest-django = "4.5.2"
+coverage = "6.4.4"
+pre-commit = "2.20.0"
+tox = "3.25.1"
+tox-gh-actions = "2.9.1"
+coveralls = "3.3.1"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "1.3.1"
+pymdown-extensions = "9.5"
+mkdocs-mermaid2-plugin = "0.6.0"
+
+[tool.poetry.group.lint.dependencies]
+pylint = "2.15.0"
+pylint-django = "2.5.3"
+mypy = "0.971"
+django-stubs = "1.12.0"
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_gitignore = "True"
+lines_after_imports = 2
+
+[tool.pylint.MASTER]
+ignore-paths = [
+    "tests/*",
+    "docs/*",
+    ".venv/*",
+    ".tox/*",
+]
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+]
+
+[tool.pylint.format]
+max-line-length = "120"
+
+[tool.pylint.miscellaneous]
+notes = [
+    "BUG",
+    "REFACTOR",
+    "CHECK",
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = "True"
+warn_unused_configs = "True"
+
+[tool.coverage.run]
+relative_files = true
+
+[tool.coverage.report]
+omit = [
+    "tests/*",
+    "docs/*",
+    ".venv/*",
+    ".tox/*",
+]
+exclude_lines = [
+    "if TYPE_CHECKING:",
+    "except ImportError:",
+    "pragma: no cover",
+]
+
+[tool.pytest.ini_options]
+addopts = "-vv -s --log-cli-level=INFO"
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py{38, 39, 310, 311}
+isolated_build = true
+
+[gh-actions]
+python =
+    3.8: py38
+    3.9: py39
+    3.10: py310
+    3.11: py311
+
+[testenv]
+whitelist_externals =
+    poetry
+setenv =
+    PYTHONPATH = {toxinidir}
+commands =
+    poetry install
+    poetry run coverage run -m pytest
+"""
+
+[build-system]
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"

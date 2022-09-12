@@ -1,0 +1,24 @@
+{% load static %}
+{% load i18n %}
+
+{% spaceless %}
+<div class="related-widget-wrapper">
+    <div class="dynamic-array" data-count="{{ widget.subwidgets|length }}">
+        <ul>
+            {% for subwidget in widget.subwidgets %}
+                <li class="dynamic-array-item">
+                    {% with widget=subwidget %}
+                        {% include widget.template_name %}
+                    {% endwith %}
+                    <a class="remove-array-item" onclick="removeArrayItem(this.parentNode)">
+                        <div class="inline-deletelink"></div>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        <div>
+            <a class="addlink add-array-item" onclick="addArrayItem(this.parentNode.parentNode)">{% trans "Add item" %}</a>
+        </div>
+    </div>
+</div>
+{% endspaceless %}

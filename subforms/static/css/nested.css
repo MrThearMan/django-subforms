@@ -1,0 +1,27 @@
+
+.nested-form {
+    display: flow-root;
+}
+
+.nested-form > input {
+    margin: 2px 0 2px 0!important;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nested-form > label.nested-form-label {
+    line-height: normal;
+    padding: 0;
+    margin: 2px 0 2px 0!important;
+    width: 25%;
+    max-width: 150px;
+    min-width: 100px;
+    display: inline-flex;
+    align-items: center;
+}
+
+@media (max-width: 1024px) {
+    .nested-form > label.nested-form-label {
+        min-height: 35px;
+    }
+}
