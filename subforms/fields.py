@@ -23,14 +23,20 @@ class DynamicArrayField(forms.Field):
         "item_invalid": gettext_lazy("Validation error on item %(index)s:"),
     }
 
-    def __init__(
-        self,
-        subfield: Union[Type[forms.Field], forms.Field] = forms.CharField,
-        **kwargs,
-    ):
+    def __init__(self, subfield: Union[Type[forms.Field], forms.Field] = forms.CharField, **kwargs: Any):
+        # Compatibility with 'django.contrib.postgres.fields.array.ArrayField'
+        self.max_length = kwargs.pop("max_length", None)
+        if "base_field" in kwargs:  # pragma: no cover
+            subfield = kwargs.pop("base_field")
+
         self.subfield: forms.Field = subfield() if isinstance(subfield, type) else copy.deepcopy(subfield)
         self.default = kwargs.pop("default", None)
-        kwargs.setdefault("widget", DynamicArrayWidget(subwidget=self.subfield.widget))
+        kwargs.setdefault(
+            "widget",
+            self.widget(subwidget=self.subfield.widget)
+            if issubclass(self.widget, DynamicArrayWidget)
+            else DynamicArrayWidget(subwidget=self.subfield.widget),
+        )
         super().__init__(**kwargs)
 
     def clean(self, value: List[Any]) -> List[Any]:
@@ -39,6 +45,15 @@ class DynamicArrayField(forms.Field):
 
         if value is not None:
             value = [x for x in value if x]
+
+            if self.max_length is not None and len(value) > self.max_length:
+                errors.append(
+                    ValidationError(
+                        gettext_lazy(
+                            f"Ensure there are {self.max_length} or fewer items in this list (currently {len(value)})."
+                        )
+                    )
+                )
 
             for index, item in enumerate(value):
                 try:
@@ -76,12 +91,17 @@ class DynamicArrayField(forms.Field):
 class NestedFormField(forms.MultiValueField):
     """Form field that can wrap other forms as nested fields."""
 
-    def __init__(self, subform: Union[Type[forms.Form], forms.Form], **kwargs):
+    def __init__(self, subform: Union[Type[forms.Form], forms.Form], **kwargs: Any):
         self.subform: forms.Form = subform() if isinstance(subform, type) else copy.deepcopy(subform)
         kwargs.setdefault("require_all_fields", False)
+        kwargs.setdefault(
+            "widget",
+            self.widget(form_class=subform)
+            if issubclass(self.widget, NestedFormWidget)
+            else NestedFormWidget(form_class=subform),
+        )
         super().__init__(
-            fields=tuple(self.subform.fields.values()),
-            widget=NestedFormWidget(form_class=subform),
+            tuple(self.subform.fields.values()),
             **kwargs,
         )
 

@@ -288,3 +288,22 @@ def test_form__array_of_char():
         "bar": ["2", "3"],
         "foo": "1",
     }
+
+
+def test_form__array_of_char__max_length():
+    class ExampleForm(forms.Form):
+        foo = forms.CharField()
+        bar = DynamicArrayField(max_length=1)
+
+    data = {
+        "foo": ["1"],
+        "bar": ["2", "3"],
+    }
+
+    form_data = QueryDict(mutable=True)
+    for key, value in data.items():
+        form_data.setlist(key, value)
+
+    form = ExampleForm(data=form_data)
+    assert form.is_bound
+    assert form.errors == {"bar": ["Ensure there are 1 or fewer items in this list (currently 2)."]}
