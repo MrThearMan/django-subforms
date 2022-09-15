@@ -1,4 +1,4 @@
-# Django subforms
+# Django Subforms
 
 [![Coverage Status][coverage-badge]][coverage]
 [![GitHub Workflow Status][status-badge]][status]

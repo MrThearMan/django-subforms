@@ -17,8 +17,8 @@ class DynamicArrayWidget(forms.TextInput):
     template_name = "subforms/array.html"
 
     class Media:
-        js = ["js/array.js"]
-        css = {"all": ["css/array.css"]}
+        js = ["js/subforms.js"]
+        css = {"all": ["css/subforms.css"]}
 
     def __init__(
         self,
@@ -84,7 +84,8 @@ class NestedFormWidget(forms.MultiWidget):
     template_name = "subforms/nested.html"
 
     class Media:
-        css = {"all": ["css/nested.css"]}
+        js = ["js/subforms.js"]
+        css = {"all": ["css/subforms.css"]}
 
     def __init__(self, form_class: Type[forms.Form], attrs: Optional[Dict[str, Any]] = None):
         self.subform = form_class()
