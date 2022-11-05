@@ -1,0 +1,30 @@
+{% load subforms_extras %}
+{% load i18n %}
+
+{% spaceless %}
+<div class="related-widget-wrapper">
+    <div class="key-value-field" data-count="{{ widget.subwidgets|length|divide:2 }}">
+        {% with widget_name=widget.name|add:"_" %}
+        <ul>
+            {% for is_even, subwidget in widget.subwidgets|split_even_and_odd %}
+
+                {% if is_even %}
+                    <li class="key-value-item">
+                    {% include subwidget.template_name with widget=subwidget %}:
+                {% else %}
+                    {% include subwidget.template_name with widget=subwidget %}
+                    <a class="remove-key-value-item" onclick="removeItem(this.parentNode)">
+                        <div class="inline-deletelink"></div>
+                    </a>
+                    </li>
+                {% endif %}
+
+            {% endfor %}
+        </ul>
+        {% endwith %}
+        <div>
+            <a class="addlink add-key-value-item" onclick="addItem(this.parentNode.parentNode)">{% trans "Add item" %}</a>
+        </div>
+    </div>
+</div>
+{% endspaceless %}

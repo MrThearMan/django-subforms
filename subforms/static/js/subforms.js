@@ -1,16 +1,16 @@
-function addArrayItem(element) {
+function addItem(element) {
     const items = parseInt(element.getAttribute("data-count"));
     element.removeAttribute("data-count")
 
-    const initialElement = element.querySelector(":scope > ul > li.dynamic-array-item");
+    const initialElement = element.querySelector(":scope > ul > li");
     const newElement = initialElement.cloneNode(true);
     const subElements = newElement.querySelectorAll("input");
 
     subElements.forEach(element => {
         let element_id = element.getAttribute("id");
         element_id = element_id.replace(
-            /array-index-(?<index>\d+)_?\d*$/,
-            ($index) => "array-index-" + String(items),
+            /-index-(?<index>\d+)_?\d*$/,
+            ($index) => "-index-" + String(items),
         )
 
         element.setAttribute("id", element_id);
@@ -21,7 +21,7 @@ function addArrayItem(element) {
     element.setAttribute("data-count", String(items + 1))
 }
 
-function removeArrayItem(element) {
+function removeItem(element) {
     if (element.parentElement.childElementCount > 1) {
         element.remove();
     }

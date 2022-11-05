@@ -10,14 +10,14 @@
                     {% with widget=subwidget %}
                         {% include widget.template_name %}
                     {% endwith %}
-                    <a class="remove-array-item" onclick="removeArrayItem(this.parentNode)">
+                    <a class="remove-array-item" onclick="removeItem(this.parentNode)">
                         <div class="inline-deletelink"></div>
                     </a>
                 </li>
             {% endfor %}
         </ul>
         <div>
-            <a class="addlink add-array-item" onclick="addArrayItem(this.parentNode.parentNode)">{% trans "Add item" %}</a>
+            <a class="addlink add-array-item" onclick="addItem(this.parentNode.parentNode)">{% trans "Add item" %}</a>
         </div>
     </div>
 </div>

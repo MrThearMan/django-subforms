@@ -1,9 +1,10 @@
 import pytest
 from bs4 import BeautifulSoup
 from django import forms
+from django.forms import EmailField
 from django.http import HttpResponse, QueryDict
 
-from subforms.fields import DynamicArrayField
+from subforms.fields import DynamicArrayField, KeyValueField
 from tests.myapp.admin import ThingForm
 from tests.myapp.models import Thing
 
@@ -45,17 +46,17 @@ def test_admin_form_add(django_client):
     array_value = array.find(name="div", attrs={"class": "dynamic-array"})
     assert array_value is not None
 
-    add_button = array_value.find(name="a", attrs={"class": "add-array-item"})
-    assert add_button is not None
-    assert add_button.text == "Add item"
+    array_add_button = array_value.find(name="a", attrs={"class": "add-array-item"})
+    assert array_add_button is not None
+    assert array_add_button.text == "Add item"
 
-    remove_button = array_value.find(name="a", attrs={"class": "remove-array-item"})
-    assert remove_button is not None
+    array_remove_button = array_value.find(name="a", attrs={"class": "remove-array-item"})
+    assert array_remove_button is not None
 
-    items = array_value.findAll(name="li", attrs={"class": "dynamic-array-item"})
-    assert len(items) == 1
+    array_items = array_value.findAll(name="li", attrs={"class": "dynamic-array-item"})
+    assert len(array_items) == 1
 
-    array_nested = items[0].find(name="div", attrs={"class": "nested-form"})
+    array_nested = array_items[0].find(name="div", attrs={"class": "nested-form"})
     assert array_nested is not None
 
     array_foo = array_nested.find(name="input", attrs={"name": "array_foo"})
@@ -70,12 +71,35 @@ def test_admin_form_add(django_client):
     array_bar_fuzz = array_bar.find(name="input", attrs={"name": "array_bar_buzz"})
     assert array_bar_fuzz is not None
 
+    keyvalue = fieldset.find(name="div", attrs={"class": "field-dict"})
+    assert keyvalue is not None
+
+    kayvalue_value = keyvalue.find(name="div", attrs={"class": "key-value-field"})
+    assert kayvalue_value is not None
+
+    keyvalue_add_button = kayvalue_value.find(name="a", attrs={"class": "add-key-value-item"})
+    assert keyvalue_add_button is not None
+    assert keyvalue_add_button.text == "Add item"
+
+    keyvalue_remove_button = kayvalue_value.find(name="a", attrs={"class": "remove-key-value-item"})
+    assert keyvalue_remove_button is not None
+
+    keyvalue_items = kayvalue_value.findAll(name="li", attrs={"class": "key-value-item"})
+    assert len(keyvalue_items) == 1
+
+    key_input = keyvalue_items[0].find(name="input", attrs={"id": "id_dict_key-index-0"})
+    assert key_input is not None
+
+    value_input = keyvalue_items[0].find(name="input", attrs={"id": "id_dict_value-index-0"})
+    assert value_input is not None
+
 
 def test_admin_form__edit(django_client):
 
     thing = Thing.objects.create(
         nested={"foo": "1", "bar": {"fizz": "2", "buzz": 3}},
         array=[{"foo": "4", "bar": {"fizz": "5", "buzz": 6}}, {"foo": "7", "bar": {"fizz": "8", "buzz": 9}}],
+        dict={"1": "2", "3": "4", "5": "6"},
     )
 
     result: HttpResponse = django_client.get(f"/admin/myapp/thing/{thing.id}/change", follow=True)
@@ -114,17 +138,17 @@ def test_admin_form__edit(django_client):
     array_value = array.find(name="div", attrs={"class": "dynamic-array"})
     assert array_value is not None
 
-    add_button = array_value.find(name="a", attrs={"class": "add-array-item"})
-    assert add_button is not None
-    assert add_button.text == "Add item"
+    array_add_button = array_value.find(name="a", attrs={"class": "add-array-item"})
+    assert array_add_button is not None
+    assert array_add_button.text == "Add item"
 
-    remove_button = array_value.find(name="a", attrs={"class": "remove-array-item"})
-    assert remove_button is not None
+    array_remove_button = array_value.find(name="a", attrs={"class": "remove-array-item"})
+    assert array_remove_button is not None
 
-    items = array_value.findAll(name="li", attrs={"class": "dynamic-array-item"})
-    assert len(items) == 2
+    array_items = array_value.findAll(name="li", attrs={"class": "dynamic-array-item"})
+    assert len(array_items) == 2
 
-    array_nested_1 = items[0].find(name="div", attrs={"class": "nested-form"})
+    array_nested_1 = array_items[0].find(name="div", attrs={"class": "nested-form"})
     assert array_nested_1 is not None
 
     array_foo_1 = array_nested_1.find(name="input", attrs={"name": "array_foo"})
@@ -142,7 +166,7 @@ def test_admin_form__edit(django_client):
     assert array_bar_fuzz_1 is not None
     assert array_bar_fuzz_1.get("value") == "6"
 
-    array_nested_2 = items[1].find(name="div", attrs={"class": "nested-form"})
+    array_nested_2 = array_items[1].find(name="div", attrs={"class": "nested-form"})
     assert array_nested_1 is not None
 
     array_foo_2 = array_nested_2.find(name="input", attrs={"name": "array_foo"})
@@ -160,6 +184,46 @@ def test_admin_form__edit(django_client):
     assert array_bar_fuzz_2 is not None
     assert array_bar_fuzz_2.get("value") == "9"
 
+    keyvalue = fieldset.find(name="div", attrs={"class": "field-dict"})
+    assert keyvalue is not None
+
+    kayvalue_value = keyvalue.find(name="div", attrs={"class": "key-value-field"})
+    assert kayvalue_value is not None
+
+    keyvalue_add_button = kayvalue_value.find(name="a", attrs={"class": "add-key-value-item"})
+    assert keyvalue_add_button is not None
+    assert keyvalue_add_button.text == "Add item"
+
+    keyvalue_remove_button = kayvalue_value.find(name="a", attrs={"class": "remove-key-value-item"})
+    assert keyvalue_remove_button is not None
+
+    keyvalue_items = kayvalue_value.findAll(name="li", attrs={"class": "key-value-item"})
+    assert len(keyvalue_items) == 3
+
+    key_input_1 = keyvalue_items[0].find(name="input", attrs={"id": "id_dict_key-index-0"})
+    assert key_input_1 is not None
+    assert key_input_1.get("value") == "1"
+
+    value_input_1 = keyvalue_items[0].find(name="input", attrs={"id": "id_dict_value-index-0"})
+    assert value_input_1 is not None
+    assert value_input_1.get("value") == "2"
+
+    key_input_2 = keyvalue_items[1].find(name="input", attrs={"id": "id_dict_key-index-1"})
+    assert key_input_2 is not None
+    assert key_input_2.get("value") == "3"
+
+    value_input_2 = keyvalue_items[1].find(name="input", attrs={"id": "id_dict_value-index-1"})
+    assert value_input_2 is not None
+    assert value_input_2.get("value") == "4"
+
+    key_input_3 = keyvalue_items[2].find(name="input", attrs={"id": "id_dict_key-index-2"})
+    assert key_input_3 is not None
+    assert key_input_3.get("value") == "5"
+
+    value_input_3 = keyvalue_items[2].find(name="input", attrs={"id": "id_dict_value-index-2"})
+    assert value_input_3 is not None
+    assert value_input_3.get("value") == "6"
+
 
 def test_form():
 
@@ -170,6 +234,7 @@ def test_form():
         "array_foo": ["4", "7"],
         "array_bar_fizz": ["5", "8"],
         "array_bar_buzz": [6, 9],
+        "dict": ["1", "2", "3", "4"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -206,6 +271,10 @@ def test_form():
                 },
             },
         ],
+        "dict": {
+            "1": "2",
+            "3": "4",
+        },
     }
 
 
@@ -221,6 +290,7 @@ def test_form__missing__all():
             "Bar:  Fizz: This field is required.",
             "Bar:  Buzz: This field is required.",
         ],
+        "dict": ["This field is required."],
     }
 
 
@@ -233,6 +303,7 @@ def test_form__missing__nested_bar_buzz():
         "array_foo": ["4", "7"],
         "array_bar_fizz": ["5", "8"],
         "array_bar_buzz": [6, 9],
+        "dict": ["1", "2", "3", "4"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -253,6 +324,7 @@ def test_form__missing__array_bar_fizz_1():
         "array_foo": ["4", "7"],
         "array_bar_fizz": ["", "5"],
         "array_bar_buzz": [6, 9],
+        "dict": ["1", "2", "3", "4"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -264,7 +336,7 @@ def test_form__missing__array_bar_fizz_1():
     assert form.errors == {"array": ["Validation error on item 0: Bar:  Fizz: This field is required."]}
 
 
-def test_form__array_of_char():
+def test_form__array():
     class ExampleForm(forms.Form):
         foo = forms.CharField()
         bar = DynamicArrayField()
@@ -290,7 +362,7 @@ def test_form__array_of_char():
     }
 
 
-def test_form__array_of_char__max_length():
+def test_form__array__max_length():
     class ExampleForm(forms.Form):
         foo = forms.CharField()
         bar = DynamicArrayField(max_length=1)
@@ -306,4 +378,42 @@ def test_form__array_of_char__max_length():
 
     form = ExampleForm(data=form_data)
     assert form.is_bound
-    assert form.errors == {"bar": ["Ensure there are 1 or fewer items in this list (currently 2)."]}
+    assert form.errors == {"bar": ["Ensure there are 1 or fewer items (currently 2)."]}
+
+
+def test_form__keyvalue__incorrect_data():
+    class ExampleForm(forms.Form):
+        foo = forms.CharField()
+        bar = KeyValueField(value_field=EmailField)
+
+    data = {
+        "foo": ["1"],
+        "bar": ["2", "3"],
+    }
+
+    form_data = QueryDict(mutable=True)
+    for key, value in data.items():
+        form_data.setlist(key, value)
+
+    form = ExampleForm(data=form_data)
+    assert form.is_bound
+    assert form.errors == {"bar": ["Validation error on value 0: Enter a valid email address."]}
+
+
+def test_form__keyvalue__max_length():
+    class ExampleForm(forms.Form):
+        foo = forms.CharField()
+        bar = KeyValueField(max_length=1)
+
+    data = {
+        "foo": ["1"],
+        "bar": ["2", "3", "4", "5"],
+    }
+
+    form_data = QueryDict(mutable=True)
+    for key, value in data.items():
+        form_data.setlist(key, value)
+
+    form = ExampleForm(data=form_data)
+    assert form.is_bound
+    assert form.errors == {"bar": ["Ensure there are 1 or fewer items (currently 2)."]}

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from subforms.fields import DynamicArrayField, NestedFormField
+from subforms.fields import DynamicArrayField, KeyValueField, NestedFormField
 from tests.myapp.models import Thing
 
 
@@ -19,12 +19,14 @@ class ThingForm(forms.ModelForm):
 
     nested = NestedFormField(subform=ExampleForm)
     array = DynamicArrayField(subfield=NestedFormField(subform=ExampleForm))
+    dict = KeyValueField()
 
     class Meta:
         model = Thing
         fields = [
             "nested",
             "array",
+            "dict",
         ]
 
 

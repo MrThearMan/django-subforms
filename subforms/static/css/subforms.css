@@ -4,24 +4,41 @@
 }
 
 .dynamic-array .dynamic-array-item {
-  display: flex;
-  align-items: center;
+    margin-left: 1px;
+    display: flex;
+    align-items: center;
 }
 
 .dynamic-array .remove-array-item {
-  height: 15px;
-  display: flex;
-  align-items: center;
-  margin-left: 5px;
-  cursor: pointer;
+    height: 15px;
+    display: inline-block;
+    align-items: center;
+    margin-left: 5px;
+    cursor: pointer;
 }
 
 .dynamic-array .add-array-item {
-  cursor: pointer;
+    cursor: pointer;
+}
+
+.key-value-field .key-value-item {
+    margin-left: 1px;
+}
+
+.key-value-field .remove-key-value-item {
+    height: 12px;
+    display: inline-block;
+    align-items: center;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.key-value-field .add-key-value-item {
+    cursor: pointer;
 }
 
 .nested-form {
-    display: flow-root;
+    display: inline-table;
     margin-bottom: 6px;
 }
 
