@@ -28,7 +28,7 @@ fields, including `NestedFormField`, as dynamically expandable lists of fields.
 ![Example image](https://github.com/MrThearMan/django-subforms/raw/main/docs/img/example.png)
 
 [coverage-badge]: https://coveralls.io/repos/github/MrThearMan/django-subforms/badge.svg?branch=main
-[status-badge]: https://img.shields.io/github/workflow/status/MrThearMan/django-subforms/Test
+[status-badge]: https://img.shields.io/github/actions/workflow/status/MrThearMan/django-subforms/test.yml?branch=main
 [pypi-badge]: https://img.shields.io/pypi/v/django-subforms
 [licence-badge]: https://img.shields.io/github/license/MrThearMan/django-subforms
 [repo-badge]: https://img.shields.io/github/last-commit/MrThearMan/django-subforms
