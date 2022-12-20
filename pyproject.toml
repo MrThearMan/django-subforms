@@ -70,8 +70,6 @@ pymdown-extensions = "9.7"
 mkdocs-mermaid2-plugin = "0.6.0"
 
 [tool.poetry.group.lint.dependencies]
-pylint = "2.14.5"
-pylint-django = "2.5.3"
 mypy = "0.982"
 django-stubs = "1.13.0"
 
@@ -84,33 +82,29 @@ line_length = 120
 skip_gitignore = "True"
 lines_after_imports = 2
 
-[tool.pylint.MASTER]
-ignore-paths = [
+[tool.ruff]
+fix = true
+line-length = 120
+exclude = [
     "tests/*",
-    "docs/*",
-    ".venv/*",
-    ".tox/*",
 ]
-
-[tool.pylint.messages_control]
-disable = [
-    "missing-module-docstring",
-    "missing-class-docstring",
-    "missing-function-docstring",
+select = [
+    "F",  # pyflakes
+    "E",  # pycodestyle errors
+    # "D",  # pydocstyle
+    # "N",  # pep8-naming
+    "S",  # flake8-bandit
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+    "T",  # flake8-print
+    "W",  # pycodestyle warnings
+    # "ANN",  # flake8-annotations
 ]
-
-[tool.pylint.format]
-max-line-length = "120"
-
-[tool.pylint.miscellaneous]
-notes = [
-    "BUG",
-    "REFACTOR",
-    "CHECK",
+ignore = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = "True"
 warn_unused_configs = "True"
 plugins = [
