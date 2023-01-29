@@ -2,7 +2,6 @@ from typing import List, Tuple, TypeVar
 
 from django import template
 
-
 __all__ = [
     "divide",
     "replace",

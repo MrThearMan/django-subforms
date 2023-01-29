@@ -5,7 +5,6 @@ from django import forms
 from django.http import QueryDict
 from django.utils.datastructures import MultiValueDict
 
-
 __all__ = [
     "DynamicArrayWidget",
     "KeyValueWidget",

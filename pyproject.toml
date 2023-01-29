@@ -55,32 +55,26 @@ python = ">=3.8,<4"
 Django = ">=3.1"
 
 [tool.poetry.group.test.dependencies]
-pytest = "7.2.0"
+pytest = "7.2.1"
 pytest-django = "4.5.2"
 coverage = "6.5.0"
-pre-commit = "2.20.0"
-tox = "3.27.0"
-tox-gh-actions = "2.10.0"
+pre-commit = "3.0.1"
+tox = "4.4.2"
+tox-gh-actions = "3.0.0"
 coveralls = "3.3.1"
 beautifulsoup4 = "4.11.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "1.4.2"
-pymdown-extensions = "9.7"
+pymdown-extensions = "9.9.2"
 mkdocs-mermaid2-plugin = "0.6.0"
 
 [tool.poetry.group.lint.dependencies]
-mypy = "0.982"
-django-stubs = "1.13.0"
+mypy = "0.991"
+django-stubs = "1.14.0"
 
 [tool.black]
 line-length = 120
-
-[tool.isort]
-profile = "black"
-line_length = 120
-skip_gitignore = "True"
-lines_after_imports = 2
 
 [tool.ruff]
 fix = true
@@ -91,14 +85,12 @@ exclude = [
 select = [
     "F",  # pyflakes
     "E",  # pycodestyle errors
-    # "D",  # pydocstyle
-    # "N",  # pep8-naming
+    "I",  # isort
     "S",  # flake8-bandit
     "C",  # flake8-comprehensions
     "B",  # flake8-bugbear
     "T",  # flake8-print
     "W",  # pycodestyle warnings
-    # "ANN",  # flake8-annotations
 ]
 ignore = [
 ]
@@ -136,11 +128,12 @@ addopts = "-vv -s --log-cli-level=INFO"
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py{39, 310, 311}-django{31, 32, 40, 41}
+envlist = py{38, 39, 310, 311}-django{31, 32, 40, 41}
 isolated_build = true
 
 [gh-actions]
 python =
+    3.8: py38
     3.9: py39
     3.10: py310
     3.11: py311

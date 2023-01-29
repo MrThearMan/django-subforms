@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy
 
 from .widgets import DynamicArrayWidget, KeyValueWidget, NestedFormWidget
 
-
 __all__ = [
     "DynamicArrayField",
     "KeyValueField",
