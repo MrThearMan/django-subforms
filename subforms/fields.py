@@ -17,7 +17,6 @@ __all__ = [
 
 
 class MultiValueField(forms.Field):
-
     default_error_messages = {
         "too_long": gettext_lazy("Ensure there are %(max_length)s or fewer items (currently %(items)s)."),
     }
@@ -198,7 +197,6 @@ class NestedFormField(forms.MultiValueField):
         errors = []
 
         for i, (name, field) in enumerate(self.subform.fields.items()):
-
             try:
                 # Regular field
                 field_value = value[name]

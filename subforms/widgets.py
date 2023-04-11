@@ -13,7 +13,6 @@ __all__ = [
 
 
 class MultiValueInput(forms.TextInput):
-
     default: Any
 
     def get_context(self, name: str, value: Optional[List[Any]], attrs: Dict[str, Any]) -> Dict[str, Any]:
@@ -59,7 +58,6 @@ class MultiValueInput(forms.TextInput):
 
 
 class DynamicArrayWidget(MultiValueInput):
-
     template_name = "subforms/array.html"
 
     class Media:
@@ -89,7 +87,6 @@ class DynamicArrayWidget(MultiValueInput):
 
 
 class KeyValueWidget(MultiValueInput):
-
     template_name = "subforms/keyvalue.html"
 
     class Media:
@@ -126,7 +123,6 @@ class KeyValueWidget(MultiValueInput):
 
 
 class NestedFormWidget(forms.MultiWidget):
-
     template_name = "subforms/nested.html"
 
     class Media:

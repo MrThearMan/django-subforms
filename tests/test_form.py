@@ -95,7 +95,6 @@ def test_admin_form_add(django_client):
 
 
 def test_admin_form__edit(django_client):
-
     thing = Thing.objects.create(
         nested={"foo": "1", "bar": {"fizz": "2", "buzz": 3}},
         array=[{"foo": "4", "bar": {"fizz": "5", "buzz": 6}}, {"foo": "7", "bar": {"fizz": "8", "buzz": 9}}],
@@ -226,7 +225,6 @@ def test_admin_form__edit(django_client):
 
 
 def test_form():
-
     data = {
         "nested_foo": ["1"],
         "nested_bar_fizz": ["2"],
@@ -279,7 +277,6 @@ def test_form():
 
 
 def test_form__missing__all():
-
     form_data = QueryDict(mutable=True)
 
     form = ThingForm(data=form_data)
@@ -295,7 +292,6 @@ def test_form__missing__all():
 
 
 def test_form__missing__nested_bar_buzz():
-
     data = {
         "nested_foo": ["1"],
         "nested_bar_fizz": ["2"],
@@ -316,7 +312,6 @@ def test_form__missing__nested_bar_buzz():
 
 
 def test_form__missing__array_bar_fizz_1():
-
     data = {
         "nested_foo": ["1"],
         "nested_bar_fizz": ["2"],
