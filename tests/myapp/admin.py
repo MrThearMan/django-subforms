@@ -16,7 +16,6 @@ class ExampleForm(forms.Form):
 
 
 class ThingForm(forms.ModelForm):
-
     nested = NestedFormField(subform=ExampleForm)
     array = DynamicArrayField(subfield=NestedFormField(subform=ExampleForm))
     dict = KeyValueField()
