@@ -19,6 +19,8 @@ pip install django-subforms
 
 **Source Code**: [https://github.com/MrThearMan/django-subforms/](https://github.com/MrThearMan/django-subforms/)
 
+**Contributing**: [https://github.com/MrThearMan/django-subforms/blob/main/CONTRIBUTING.md](https://github.com/MrThearMan/django-subforms/blob/main/CONTRIBUTING.md)
+
 ---
 
 This library adds two new fields: `NestedFormField`, which can wrap forms as fields on another form
