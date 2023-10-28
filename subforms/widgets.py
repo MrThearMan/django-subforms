@@ -54,7 +54,8 @@ class MultiValueInput(forms.TextInput):
         return value or self.default
 
     def get_subwidgets(self, context: Any, id_: int, name: str, attrs: Dict) -> List:  # pragma: no cover
-        raise NotImplementedError("Subclasses must implement this method.")
+        msg = "Subclasses must implement this method."
+        raise NotImplementedError(msg)
 
 
 class DynamicArrayWidget(MultiValueInput):
@@ -68,7 +69,7 @@ class DynamicArrayWidget(MultiValueInput):
         self,
         subwidget: Union[Type[forms.Widget], forms.Widget] = forms.TextInput,
         attrs: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> None:
         self.subwidget = subwidget() if isinstance(subwidget, type) else copy.deepcopy(subwidget)
         self.subwidget.is_required = self.is_required
         self.default = (None,)
@@ -98,7 +99,7 @@ class KeyValueWidget(MultiValueInput):
         key_widget: Union[Type[forms.Widget], forms.Widget] = forms.TextInput,
         value_widget: Union[Type[forms.Widget], forms.Widget] = forms.TextInput,
         attrs: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> None:
         self.key_widget = key_widget() if isinstance(key_widget, type) else copy.deepcopy(key_widget)
         self.key_widget.is_required = self.is_required
         self.value_widget = value_widget() if isinstance(value_widget, type) else copy.deepcopy(value_widget)
@@ -129,12 +130,12 @@ class NestedFormWidget(forms.MultiWidget):
         js = ["js/subforms.js"]
         css = {"all": ["css/subforms.css"]}
 
-    def __init__(self, form_class: Type[forms.Form], attrs: Optional[Dict[str, Any]] = None):
+    def __init__(self, form_class: Type[forms.Form], attrs: Optional[Dict[str, Any]] = None) -> None:
         self.subform = form_class()
         widgets = {name: bound_field.widget for name, bound_field in self.subform.fields.items()}
         super().__init__(widgets=widgets, attrs=attrs)
 
     def decompress(self, value: Any) -> List[Any]:
         if isinstance(value, Mapping):
-            return [value.get(name) for name in self.subform.fields.keys()]
+            return [value.get(name) for name in self.subform.fields]
         return [None for _ in self.subform.fields]

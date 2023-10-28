@@ -21,7 +21,7 @@ class MultiValueField(forms.Field):
         "too_long": gettext_lazy("Ensure there are %(max_length)s or fewer items (currently %(items)s)."),
     }
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         self.default = kwargs.pop("default", None)
         self.max_length = kwargs.pop("max_length", None)
         super().__init__(**kwargs)
@@ -69,13 +69,16 @@ class MultiValueField(forms.Field):
         return super().has_changed(initial, data)
 
     def check_max_length(self, value: Any) -> Optional[ValidationError]:  # pragma: no cover
-        raise NotImplementedError("Subclasses must implement this method.")
+        msg = "Subclasses must implement this method."
+        raise NotImplementedError(msg)
 
     def clean_item(self, index: int, item: Any) -> Any:  # pragma: no cover
-        raise NotImplementedError("Subclasses must implement this method.")
+        msg = "Subclasses must implement this method."
+        raise NotImplementedError(msg)
 
     def compress(self, data_list: List) -> Any:  # pragma: no cover
-        raise NotImplementedError("Subclasses must implement this method.")
+        msg = "Subclasses must implement this method."
+        raise NotImplementedError(msg)
 
 
 class DynamicArrayField(MultiValueField):
@@ -85,7 +88,7 @@ class DynamicArrayField(MultiValueField):
         "item_invalid": gettext_lazy("Validation error on item %(index)s:"),
     }
 
-    def __init__(self, subfield: Union[Type[forms.Field], forms.Field] = forms.CharField, **kwargs: Any):
+    def __init__(self, subfield: Union[Type[forms.Field], forms.Field] = forms.CharField, **kwargs: Any) -> None:
         # Compatibility with 'django.contrib.postgres.fields.array.ArrayField'
         if "base_field" in kwargs:  # pragma: no cover
             subfield = kwargs.pop("base_field")
@@ -128,7 +131,7 @@ class KeyValueField(MultiValueField):
         "value_invalid": gettext_lazy("Validation error on value %(index)s:"),
     }
 
-    def __init__(self, value_field: Union[Type[forms.Field], forms.Field] = forms.CharField, **kwargs: Any):
+    def __init__(self, value_field: Union[Type[forms.Field], forms.Field] = forms.CharField, **kwargs: Any) -> None:
         self.key_field = forms.CharField()
         self.value_field = value_field() if isinstance(value_field, type) else copy.deepcopy(value_field)
 
@@ -169,7 +172,7 @@ class KeyValueField(MultiValueField):
                 key = next(data_iterable)
                 value = next(data_iterable)
                 data[key] = value
-            except StopIteration:
+            except StopIteration:  # noqa:  PERF203
                 break
 
         return data
@@ -178,7 +181,7 @@ class KeyValueField(MultiValueField):
 class NestedFormField(forms.MultiValueField):
     """Form field that can wrap other forms as nested fields."""
 
-    def __init__(self, subform: Union[Type[forms.Form], forms.Form], **kwargs: Any):
+    def __init__(self, subform: Union[Type[forms.Form], forms.Form], **kwargs: Any) -> None:
         self.subform: forms.Form = subform() if isinstance(subform, type) else copy.deepcopy(subform)
         kwargs.setdefault("require_all_fields", False)
         kwargs.setdefault(
@@ -192,7 +195,7 @@ class NestedFormField(forms.MultiValueField):
             **kwargs,
         )
 
-    def clean(self, value: any) -> Dict[str, Any]:  # noqa: C901
+    def clean(self, value: any) -> Dict[str, Any]:  # noqa: C901, PLR0912
         clean_data = []
         errors = []
 
