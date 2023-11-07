@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-subforms"
-version = "0.2.0"
+version = "0.3.0"
 description = "Wrap django forms as fields and fields as dynamic arrays."
 authors = [
     "Matti Lamppu <lamppu.matti.akseli@gmail.com>",

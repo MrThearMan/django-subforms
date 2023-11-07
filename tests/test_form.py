@@ -8,7 +8,6 @@ from subforms.fields import DynamicArrayField, KeyValueField
 from tests.myapp.admin import ThingForm
 from tests.myapp.models import Thing
 
-
 pytestmark = pytest.mark.django_db
 
 
@@ -99,6 +98,7 @@ def test_admin_form__edit(django_client):
         nested={"foo": "1", "bar": {"fizz": "2", "buzz": 3}},
         array=[{"foo": "4", "bar": {"fizz": "5", "buzz": 6}}, {"foo": "7", "bar": {"fizz": "8", "buzz": 9}}],
         dict={"1": "2", "3": "4", "5": "6"},
+        required=[{"fizz": "11", "buzz": 11}],
     )
 
     result: HttpResponse = django_client.get(f"/admin/myapp/thing/{thing.id}/change", follow=True)
@@ -233,6 +233,8 @@ def test_form():
         "array_bar_fizz": ["5", "8"],
         "array_bar_buzz": [6, 9],
         "dict": ["1", "2", "3", "4"],
+        "required_fizz": ["woo"],
+        "required_buzz": ["hoo"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -273,6 +275,12 @@ def test_form():
             "1": "2",
             "3": "4",
         },
+        "required": [
+            {
+                "buzz": "hoo!",
+                "fizz": "woo!",
+            },
+        ],
     }
 
 
@@ -288,6 +296,7 @@ def test_form__missing__all():
             "Bar:  Buzz: This field is required.",
         ],
         "dict": ["This field is required."],
+        "required": ["This field is required."],
     }
 
 
@@ -300,6 +309,8 @@ def test_form__missing__nested_bar_buzz():
         "array_bar_fizz": ["5", "8"],
         "array_bar_buzz": [6, 9],
         "dict": ["1", "2", "3", "4"],
+        "required_fizz": ["woo"],
+        "required_buzz": ["hoo"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -320,6 +331,8 @@ def test_form__missing__array_bar_fizz_1():
         "array_bar_fizz": ["", "5"],
         "array_bar_buzz": [6, 9],
         "dict": ["1", "2", "3", "4"],
+        "required_fizz": ["woo"],
+        "required_buzz": ["hoo"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -329,6 +342,70 @@ def test_form__missing__array_bar_fizz_1():
     form = ThingForm(data=form_data)
     assert form.is_bound
     assert form.errors == {"array": ["Validation error on item 0: Bar:  Fizz: This field is required."]}
+
+
+def test_form__missing__required():
+    data = {
+        "nested_foo": ["1"],
+        "nested_bar_fizz": ["2"],
+        "nested_bar_buzz": [3],
+        "array_foo": ["4", "7"],
+        "array_bar_fizz": ["5", "8"],
+        "array_bar_buzz": [6, 9],
+        "dict": ["1", "2", "3", "4"],
+    }
+
+    form_data = QueryDict(mutable=True)
+    for key, value in data.items():
+        form_data.setlist(key, value)
+
+    form = ThingForm(data=form_data)
+    assert form.is_bound
+    assert form.errors == {"required": ["This field is required."]}
+
+
+def test_form__missing__required__raise_error():
+    data = {
+        "nested_foo": ["1"],
+        "nested_bar_fizz": ["2"],
+        "nested_bar_buzz": [3],
+        "array_foo": ["4", "7"],
+        "array_bar_fizz": ["5", "8"],
+        "array_bar_buzz": [6, 9],
+        "dict": ["1", "2", "3", "4"],
+        "required_fizz": ["raise"],
+        "required_buzz": ["hoo"],
+    }
+
+    form_data = QueryDict(mutable=True)
+    for key, value in data.items():
+        form_data.setlist(key, value)
+
+    form = ThingForm(data=form_data)
+    assert form.is_bound
+    assert form.errors == {"required": ["Validation error on item 0: Fizz: This value is not allowed"]}
+
+
+def test_form__missing__required__raise_error__non_field_error():
+    data = {
+        "nested_foo": ["1"],
+        "nested_bar_fizz": ["2"],
+        "nested_bar_buzz": [3],
+        "array_foo": ["4", "7"],
+        "array_bar_fizz": ["5", "8"],
+        "array_bar_buzz": [6, 9],
+        "dict": ["1", "2", "3", "4"],
+        "required_fizz": ["error"],
+        "required_buzz": ["hoo"],
+    }
+
+    form_data = QueryDict(mutable=True)
+    for key, value in data.items():
+        form_data.setlist(key, value)
+
+    form = ThingForm(data=form_data)
+    assert form.is_bound
+    assert form.errors == {"required": ["Validation error on item 0: This value is not allowed"]}
 
 
 def test_form__array():

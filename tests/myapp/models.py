@@ -5,6 +5,7 @@ class Thing(models.Model):
     nested = models.JSONField(default=dict)
     array = models.JSONField(default=list)
     dict = models.JSONField(default=dict)
+    required = models.JSONField()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.id)
