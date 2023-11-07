@@ -78,7 +78,7 @@ fix = true
 unsafe-fixes = true
 line-length = 120
 exclude = [
-    "tests/*",
+    "tests*",
 ]
 select = [
     "A",        # flake8-builtins
@@ -161,10 +161,10 @@ relative_files = true
 
 [tool.coverage.report]
 omit = [
-    "tests/*",
-    "docs/*",
-    ".venv/*",
-    ".tox/*",
+    "tests*",
+    "docs*",
+    ".venv*",
+    ".tox*",
 ]
 exclude_lines = [
     "if TYPE_CHECKING:",
