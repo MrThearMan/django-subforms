@@ -195,7 +195,7 @@ class NestedFormField(forms.MultiValueField):
             **kwargs,
         )
 
-    def clean(self, value: Any) -> Dict[str, Any]:  # noqa: C901, PLR0912
+    def clean(self, value: Any) -> Dict[str, Any]:  # noqa: C901
         clean_data = []
         errors = []
 
