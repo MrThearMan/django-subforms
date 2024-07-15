@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import copy
 from itertools import chain
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 from django import forms
 from django.contrib.postgres.utils import prefix_validation_error
@@ -26,7 +28,7 @@ class MultiValueField(forms.Field):
         self.max_length = kwargs.pop("max_length", None)
         super().__init__(**kwargs)
 
-    def clean(self, value: List[Any]) -> List[Any]:
+    def clean(self, value: list[Any]) -> list[Any]:
         cleaned_data: list[Any] = []
         errors: list[ValidationError] = []
 
@@ -60,15 +62,15 @@ class MultiValueField(forms.Field):
         self.run_validators(out)
         return out
 
-    def validate(self, value: List) -> None:
+    def validate(self, value: list) -> None:
         pass
 
-    def has_changed(self, initial: Dict[str, Any], data: Dict[str, Any]) -> bool:  # pragma: no cover
+    def has_changed(self, initial: dict[str, Any], data: dict[str, Any]) -> bool:  # pragma: no cover
         if not data and not initial:
             return False
         return super().has_changed(initial, data)
 
-    def check_max_length(self, value: Any) -> Optional[ValidationError]:  # pragma: no cover
+    def check_max_length(self, value: Any) -> ValidationError | None:  # pragma: no cover
         msg = "Subclasses must implement this method."
         raise NotImplementedError(msg)
 
@@ -76,7 +78,7 @@ class MultiValueField(forms.Field):
         msg = "Subclasses must implement this method."
         raise NotImplementedError(msg)
 
-    def compress(self, data_list: List) -> Any:  # pragma: no cover
+    def compress(self, data_list: list) -> Any:  # pragma: no cover
         msg = "Subclasses must implement this method."
         raise NotImplementedError(msg)
 
@@ -88,7 +90,7 @@ class DynamicArrayField(MultiValueField):
         "item_invalid": gettext_lazy("Validation error on item %(index)s:"),
     }
 
-    def __init__(self, subfield: Union[Type[forms.Field], forms.Field] = forms.CharField, **kwargs: Any) -> None:
+    def __init__(self, subfield: type[forms.Field] | forms.Field = forms.CharField, **kwargs: Any) -> None:
         # Compatibility with 'django.contrib.postgres.fields.array.ArrayField'
         if "base_field" in kwargs:  # pragma: no cover
             subfield = kwargs.pop("base_field")
@@ -102,7 +104,7 @@ class DynamicArrayField(MultiValueField):
         )
         super().__init__(**kwargs)
 
-    def check_max_length(self, value: Any) -> Optional[ValidationError]:
+    def check_max_length(self, value: Any) -> ValidationError | None:
         items = len(value)
         if self.max_length is not None and items > self.max_length:
             return ValidationError(self.error_messages["too_long"] % {"max_length": self.max_length, "items": items})
@@ -119,7 +121,7 @@ class DynamicArrayField(MultiValueField):
                 params={"index": index},
             )
 
-    def compress(self, data_list: List) -> Any:
+    def compress(self, data_list: list) -> Any:
         return data_list
 
 
@@ -131,7 +133,7 @@ class KeyValueField(MultiValueField):
         "value_invalid": gettext_lazy("Validation error on value %(index)s:"),
     }
 
-    def __init__(self, value_field: Union[Type[forms.Field], forms.Field] = forms.CharField, **kwargs: Any) -> None:
+    def __init__(self, value_field: type[forms.Field] | forms.Field = forms.CharField, **kwargs: Any) -> None:
         self.key_field = forms.CharField()
         self.value_field = value_field() if isinstance(value_field, type) else copy.deepcopy(value_field)
 
@@ -143,7 +145,7 @@ class KeyValueField(MultiValueField):
         )
         super().__init__(**kwargs)
 
-    def check_max_length(self, value: Any) -> Optional[ValidationError]:
+    def check_max_length(self, value: Any) -> ValidationError | None:
         items = len(value) // 2
         if self.max_length is not None and items > self.max_length:
             return ValidationError(self.error_messages["too_long"] % {"max_length": self.max_length, "items": items})
@@ -164,7 +166,7 @@ class KeyValueField(MultiValueField):
                 params={"index": index // 2},
             )
 
-    def compress(self, data_list: List) -> Any:
+    def compress(self, data_list: list) -> Any:
         data = {}
         data_iterable = iter(data_list)
         while True:
@@ -181,7 +183,7 @@ class KeyValueField(MultiValueField):
 class NestedFormField(forms.MultiValueField):
     """Form field that can wrap other forms as nested fields."""
 
-    def __init__(self, subform: Union[Type[forms.Form], forms.Form], **kwargs: Any) -> None:
+    def __init__(self, subform: type[forms.Form] | forms.Form, **kwargs: Any) -> None:
         self.subform: forms.Form = subform() if isinstance(subform, type) else copy.deepcopy(subform)
         kwargs.setdefault("require_all_fields", False)
         kwargs.setdefault(
@@ -195,7 +197,7 @@ class NestedFormField(forms.MultiValueField):
             **kwargs,
         )
 
-    def clean(self, value: Any) -> Dict[str, Any]:  # noqa: C901
+    def clean(self, value: Any) -> dict[str, Any]:
         clean_data = []
         errors = []
 
@@ -249,7 +251,7 @@ class NestedFormField(forms.MultiValueField):
                 )
 
         # Chance to do some form wide cleanup after the fields are validated
-        self.subform._post_clean()
+        self.subform._post_clean()  # noqa: SLF001
 
         if errors:
             raise ValidationError(errors)
@@ -259,20 +261,20 @@ class NestedFormField(forms.MultiValueField):
         self.run_validators(out)
         return out
 
-    def get_errors(self, error: ValidationError) -> List[str]:
-        errors: List[str] = []
+    def get_errors(self, error: ValidationError) -> list[str]:
+        errors: list[str] = []
         error_dict = error.error_dict if hasattr(error, "error_dict") else {NON_FIELD_ERRORS: error.error_list}
 
-        for field, error in error_dict.items():
-            if isinstance(error, list):
-                error = error[0]  # noqa: PLW2901
-            if hasattr(error, "message"):
-                error = error.message  # noqa: PLW2901
+        for field, err in error_dict.items():
+            if isinstance(err, list):
+                err = err[0]  # noqa: PLW2901
+            if hasattr(err, "message"):
+                err = err.message  # noqa: PLW2901
 
-            msg = f"{field.capitalize()}: {error}" if field != NON_FIELD_ERRORS else error
+            msg = f"{field.capitalize()}: {err}" if field != NON_FIELD_ERRORS else err
             errors.append(msg)
 
         return errors
 
-    def compress(self, data_list: List) -> Dict[str, Any]:
+    def compress(self, data_list: list) -> dict[str, Any]:
         return {key: data_list[i] for i, key in enumerate(self.subform.fields.keys())}

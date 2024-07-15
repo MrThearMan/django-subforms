@@ -1,4 +1,6 @@
-from typing import List, Tuple, TypeVar
+from __future__ import annotations
+
+from typing import TypeVar
 
 from django import template
 
@@ -20,7 +22,7 @@ def replace(value: str, arg: str) -> str:
 
 
 @register.filter
-def split_even_and_odd(value: List[T]) -> List[Tuple[int, T]]:
+def split_even_and_odd(value: list[T]) -> list[tuple[int, T]]:
     return [(i % 2 == 0, val) for i, val in enumerate(value)]
 
 

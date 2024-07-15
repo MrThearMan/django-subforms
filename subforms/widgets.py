@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import copy
-from typing import Any, Dict, List, Mapping, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Mapping
 
 from django import forms
-from django.http import QueryDict
-from django.utils.datastructures import MultiValueDict
+
+if TYPE_CHECKING:
+    from django.http import QueryDict
+    from django.utils.datastructures import MultiValueDict
 
 __all__ = [
     "DynamicArrayWidget",
@@ -15,7 +19,7 @@ __all__ = [
 class MultiValueInput(forms.TextInput):
     default: Any
 
-    def get_context(self, name: str, value: Optional[List[Any]], attrs: Dict[str, Any]) -> Dict[str, Any]:
+    def get_context(self, name: str, value: list[Any] | None, attrs: dict[str, Any]) -> dict[str, Any]:
         context = super().get_context(name, value, attrs)
         attrs = context["widget"]["attrs"]
         id_ = attrs.get("id")
@@ -23,7 +27,7 @@ class MultiValueInput(forms.TextInput):
         context["widget"]["subwidgets"] = self.get_subwidgets(values, id_, name, attrs)
         return context
 
-    def value_from_datadict(self, data: QueryDict, files: MultiValueDict, name: str) -> List[Any]:
+    def value_from_datadict(self, data: QueryDict, files: MultiValueDict, name: str) -> list[Any]:
         try:
             getter = data.getlist
         except AttributeError:  # pragma: no cover
@@ -50,10 +54,10 @@ class MultiValueInput(forms.TextInput):
     def value_omitted_from_data(self, data: QueryDict, files: MultiValueDict, name: str) -> bool:
         return False
 
-    def format_value(self, value: Optional[List[Any]]) -> Any:
+    def format_value(self, value: list[Any] | None) -> Any:
         return value or self.default
 
-    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: Dict) -> List:  # pragma: no cover
+    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: dict) -> list:  # pragma: no cover
         msg = "Subclasses must implement this method."
         raise NotImplementedError(msg)
 
@@ -67,15 +71,15 @@ class DynamicArrayWidget(MultiValueInput):
 
     def __init__(
         self,
-        subwidget: Union[Type[forms.Widget], forms.Widget] = forms.TextInput,
-        attrs: Optional[Dict[str, Any]] = None,
+        subwidget: type[forms.Widget] | forms.Widget = forms.TextInput,
+        attrs: dict[str, Any] | None = None,
     ) -> None:
         self.subwidget = subwidget() if isinstance(subwidget, type) else copy.deepcopy(subwidget)
         self.subwidget.is_required = self.is_required
         self.default = (None,)
         super().__init__(attrs=attrs)
 
-    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: Dict) -> List:
+    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: dict) -> list:
         subwidgets = []
 
         for index, item in enumerate(context):
@@ -96,9 +100,9 @@ class KeyValueWidget(MultiValueInput):
 
     def __init__(
         self,
-        key_widget: Union[Type[forms.Widget], forms.Widget] = forms.TextInput,
-        value_widget: Union[Type[forms.Widget], forms.Widget] = forms.TextInput,
-        attrs: Optional[Dict[str, Any]] = None,
+        key_widget: type[forms.Widget] | forms.Widget = forms.TextInput,
+        value_widget: type[forms.Widget] | forms.Widget = forms.TextInput,
+        attrs: dict[str, Any] | None = None,
     ) -> None:
         self.key_widget = key_widget() if isinstance(key_widget, type) else copy.deepcopy(key_widget)
         self.key_widget.is_required = self.is_required
@@ -107,7 +111,7 @@ class KeyValueWidget(MultiValueInput):
         self.default = {None: None}
         super().__init__(attrs=attrs)
 
-    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: Dict) -> List:
+    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: dict) -> list:
         subwidgets = []
 
         for index, (key, value) in enumerate(context.items()):
@@ -130,12 +134,12 @@ class NestedFormWidget(forms.MultiWidget):
         js = ["js/subforms.js"]
         css = {"all": ["css/subforms.css"]}
 
-    def __init__(self, form_class: Type[forms.Form], attrs: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, form_class: type[forms.Form], attrs: dict[str, Any] | None = None) -> None:
         self.subform = form_class()
         widgets = {name: bound_field.widget for name, bound_field in self.subform.fields.items()}
         super().__init__(widgets=widgets, attrs=attrs)
 
-    def decompress(self, value: Any) -> List[Any]:
+    def decompress(self, value: Any) -> list[Any]:
         if isinstance(value, Mapping):
             return [value.get(name) for name in self.subform.fields]
         return [None for _ in self.subform.fields]
