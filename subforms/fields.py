@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from itertools import chain
 from typing import Any
 
@@ -123,6 +124,17 @@ class DynamicArrayField(MultiValueField):
 
     def compress(self, data_list: list) -> Any:
         return data_list
+
+    def prepare_value(self, value: list[Any] | str) -> list[Any]:
+        # In certain cases, when the database is recreated while Django is running
+        # (e.g. during local development), Django will fail to convert a Postgres
+        # Array to a Python list. In this case, we need to convert the string ourselves,
+        # so that the app can still work.
+        if isinstance(value, str):
+            if value == "{}":
+                return []
+            return [self.subfield.prepare_value(value[1:-1])]
+        return value
 
 
 class KeyValueField(MultiValueField):
@@ -278,3 +290,20 @@ class NestedFormField(forms.MultiValueField):
 
     def compress(self, data_list: list) -> dict[str, Any]:
         return {key: data_list[i] for i, key in enumerate(self.subform.fields.keys())}
+
+    def prepare_value(self, value: dict[str, Any] | str) -> dict[str, Any]:
+        # In certain cases, when the database is recreated while Django is running
+        # (e.g. during local development), Django will fail to convert a Postgres
+        # HStoreField to a Python dict. In this case, we need to convert the string ourselves,
+        # so that the app can still work.
+        if isinstance(value, str):
+            parsed = value.replace("=>", ":").replace('\\"', '"').replace('""', '"')
+            parsed = "{" + parsed + "}"
+            value = json.loads(parsed)
+
+            for key, val in value.items():
+                # Recursively convert the values to Python types if necessary.
+                value[key] = self.subform.fields[key].prepare_value(val)
+
+            return value
+        return value
