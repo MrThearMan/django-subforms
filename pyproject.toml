@@ -54,9 +54,9 @@ python = ">=3.10,<4"
 Django = ">=4.2"
 
 [tool.poetry.group.test.dependencies]
-pytest = "8.3.3"
+pytest = "8.3.4"
 pytest-django = "4.9.0"
-coverage = "7.6.8"
+coverage = "7.6.9"
 tox = "4.23.2"
 tox-gh-actions = "3.2.0"
 beautifulsoup4 = "4.12.3"
