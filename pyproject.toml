@@ -1,17 +1,12 @@
-[tool.poetry]
+[project]
 name = "django-subforms"
 version = "0.3.1"
 description = "Wrap django forms as fields and fields as dynamic arrays."
 authors = [
-    "Matti Lamppu <lamppu.matti.akseli@gmail.com>",
-]
-packages = [
-    { include = "subforms" },
+    { name = "Matti Lamppu", email = "lamppu.matti.akseli@gmail.com" },
 ]
 license = "MIT"
 readme = "README.md"
-homepage = "https://mrthearman.github.io/django-subforms/"
-repository = "https://github.com/MrThearMan/django-subforms"
 keywords = [
     "django",
     "sub",
@@ -38,19 +33,24 @@ classifiers = [
     "Intended Audience :: Developers",
     "Natural Language :: English",
 ]
-include = [
-    "README.md",
-    "LICENSE",
-]
-exclude = [
-    "tests",
+requires-python = ">=3.10,<4"
+dynamic = [
+    "dependencies",
 ]
 
-[tool.poetry.urls]
+[project.urls]
+"Homepage" = "https://mrthearman.github.io/django-subforms"
+"Repository" = "https://github.com/MrThearMan/django-subforms"
 "Bug Tracker" = "https://github.com/MrThearMan/django-subforms/issues"
+"Documentation" = "https://mrthearman.github.io/django-subforms"
+
+[tool.poetry]
+requires-poetry = ">=2.0.0"
+packages = [
+    { include = "subforms" },
+]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<4"
 Django = ">=4.2"
 
 [tool.poetry.group.test.dependencies]
@@ -67,9 +67,7 @@ pymdown-extensions = "10.13"
 mkdocs-mermaid2-plugin = "1.2.1"
 
 [tool.poetry.group.lint.dependencies]
-mypy = "1.14.1"
 pre-commit = "4.0.1"
-django-stubs = "5.1.1"
 
 [tool.ruff]
 fix = true
@@ -247,17 +245,6 @@ extend-ignore-names = [
 
 [tool.ruff.lint.mccabe]
 max-complexity = 13
-
-[tool.mypy]
-python_version = "3.13"
-warn_return_any = "True"
-warn_unused_configs = "True"
-plugins = [
-    "mypy_django_plugin.main",
-]
-
-[tool.django-stubs]
-django_settings_module = "tests.project.settings"
 
 [tool.coverage.run]
 relative_files = true
