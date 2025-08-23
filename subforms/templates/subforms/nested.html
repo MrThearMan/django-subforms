@@ -1,10 +1,8 @@
-{% load subforms_extras %}
 <div class="nested-form">
-{% with widget_name=widget.name|add:"_" %}
-{% for subwidget in widget.subwidgets %}
-    <label class="nested-form-label">{{ subwidget.name|cut:widget_name|replace:"_| "|title }}:</label>
-    {% include subwidget.template_name with widget=subwidget %}<br>
-{% endfor %}
-{% endwith %}
-
+  {% for subwidget in widget.subwidgets %}
+    <label class="nested-form-label">{{ subwidget.label }}:</label>
+    {% with widget=subwidget %}
+      {% include subwidget.template_name %}<br>
+    {% endwith %}
+  {% endfor %}
 </div>
