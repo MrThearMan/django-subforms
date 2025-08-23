@@ -1,69 +1,27 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Mapping
+import re
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
 from django import forms
 
 if TYPE_CHECKING:
-    from django.http import QueryDict
     from django.utils.datastructures import MultiValueDict
 
 __all__ = [
     "DynamicArrayWidget",
-    "KeyValueWidget",
     "NestedFormWidget",
 ]
 
 
-class MultiValueInput(forms.TextInput):
-    default: Any
-
-    def get_context(self, name: str, value: list[Any] | None, attrs: dict[str, Any]) -> dict[str, Any]:
-        context = super().get_context(name, value, attrs)
-        attrs = context["widget"]["attrs"]
-        id_ = attrs.get("id")
-        values = context["widget"]["value"]
-        context["widget"]["subwidgets"] = self.get_subwidgets(values, id_, name, attrs)
-        return context
-
-    def value_from_datadict(self, data: QueryDict, files: MultiValueDict, name: str) -> list[Any]:
-        try:
-            getter = data.getlist
-        except AttributeError:  # pragma: no cover
-            return data.get(name)
-
-        ret = []
-        if name in data:
-            ret = [value for value in getter(name) if value]
-        else:
-            for key in data:
-                if name not in key:
-                    continue
-
-                nested_key = key.replace(f"{name}_", "", 1)
-
-                for i, value in enumerate(getter(key)):
-                    if i >= len(ret):
-                        ret.append({})
-
-                    ret[i][nested_key] = value
-
-        return ret
-
-    def value_omitted_from_data(self, data: QueryDict, files: MultiValueDict, name: str) -> bool:
-        return False
-
-    def format_value(self, value: list[Any] | None) -> Any:
-        return value or self.default
-
-    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: dict) -> list:  # pragma: no cover
-        msg = "Subclasses must implement this method."
-        raise NotImplementedError(msg)
+_INDEX_PATTERN = re.compile(r"^\d+")
 
 
-class DynamicArrayWidget(MultiValueInput):
+class DynamicArrayWidget(forms.Widget):
+    """A widget that wraps a widget into a field containing a dynamic array of that widget."""
+
     template_name = "subforms/array.html"
 
     class Media:
@@ -76,60 +34,108 @@ class DynamicArrayWidget(MultiValueInput):
         attrs: dict[str, Any] | None = None,
     ) -> None:
         self.subwidget = subwidget() if isinstance(subwidget, type) else copy.deepcopy(subwidget)
-        self.subwidget.is_required = self.is_required
-        self.default = (None,)
         super().__init__(attrs=attrs)
 
-    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: dict) -> list:
-        subwidgets = []
+    def __deepcopy__(self, memo: dict[int, Any]) -> Any:
+        obj = super().__deepcopy__(memo)
+        obj.subwidget = copy.deepcopy(self.subwidget)
+        return obj
 
-        for index, item in enumerate(context):
-            widget_attrs = attrs.copy()
-            if id_:
-                widget_attrs["id"] = f"{id_}_array-index-{index}"
-            subwidgets.append(self.subwidget.get_context(name, item, widget_attrs)["widget"])
+    @property
+    def needs_multipart_form(self) -> bool:
+        return self.subwidget.needs_multipart_form
+
+    @property
+    def is_hidden(self) -> bool:
+        return self.subwidget.is_hidden
+
+    @property
+    def media(self) -> forms.Media:
+        media = forms.Media(media=self.Media)
+        media += self.subwidget.media
+        return media
+
+    def value_from_datadict(self, data: dict[str, Any], files: MultiValueDict, name: str) -> list[Any]:
+        """
+        Parse array data from the form data.
+
+        :param data: Data from the form.
+        :param files: Files from the form.
+        :param name: Name of this widget.
+        """
+        # In some cases, this function can be hit with already processed data.
+        # If this happens, we can skip the rest of the data processing.
+        if name in data:
+            return data[name]
+
+        results: dict[int, Any] = {}
+        nested_forms: dict[int, dict[str, Any]] = defaultdict(dict)
+
+        for key, value in data.items():
+            if not key.startswith(f"{name}__"):
+                continue
+
+            nested_key = key.removeprefix(f"{name}__")
+            match = re.match(_INDEX_PATTERN, nested_key)
+            if match is None:
+                continue
+
+            index = int(match.group(0))
+
+            if nested_key.isdigit():
+                results[index] = value
+                continue
+
+            # Gather nested form data
+            nested_key = nested_key.removeprefix(f"{index}__")
+            nested_forms[index][nested_key] = value
+
+        # Process nested form data
+        for index, nested_form in nested_forms.items():
+            results[index] = self.subwidget.value_from_datadict(data=nested_form, files=files, name="")
+
+        return list(results.values())
+
+    def value_omitted_from_data(self, data: dict[str, Any], files: MultiValueDict, name: str) -> bool:
+        return False
+
+    def id_for_label(self, id_: Any) -> str:
+        return ""
+
+    def format_value(self, value: list[Any] | None) -> list[Any]:
+        return value or [None]
+
+    def get_context(self, name: str, value: list[Any] | None, attrs: dict[str, Any]) -> dict[str, Any]:
+        context = super().get_context(name, value, attrs)
+
+        sub_attrs = context["widget"]["attrs"]
+        sub_value = context["widget"]["value"]
+
+        context["widget"]["subwidgets"] = self.get_subwidgets(name, sub_value, sub_attrs)
+
+        return context
+
+    def get_subwidgets(self, name: str, value: Any, attrs: dict[str, Any]) -> list[dict[str, Any]]:
+        subwidgets: list[dict[str, Any]] = []
+
+        for index, item_value in enumerate(value):
+            sub_attrs = copy.deepcopy(attrs)
+
+            item_name = f"{name}__{index}"
+            if "id" in sub_attrs:
+                sub_attrs["id"] += f"__{index}"
+
+            subwidget_attrs = self.subwidget.get_context(item_name, item_value, sub_attrs)
+            subwidgets.append(subwidget_attrs["widget"])
 
         return subwidgets
 
 
-class KeyValueWidget(MultiValueInput):
-    template_name = "subforms/keyvalue.html"
+class NestedFormWidget(forms.Widget):
+    """A widget that wraps a form into a field."""
 
-    class Media:
-        js = ["js/subforms.js"]
-        css = {"all": ["css/subforms.css"]}
-
-    def __init__(
-        self,
-        key_widget: type[forms.Widget] | forms.Widget = forms.TextInput,
-        value_widget: type[forms.Widget] | forms.Widget = forms.TextInput,
-        attrs: dict[str, Any] | None = None,
-    ) -> None:
-        self.key_widget = key_widget() if isinstance(key_widget, type) else copy.deepcopy(key_widget)
-        self.key_widget.is_required = self.is_required
-        self.value_widget = value_widget() if isinstance(value_widget, type) else copy.deepcopy(value_widget)
-        self.value_widget.is_required = self.is_required
-        self.default = {None: None}
-        super().__init__(attrs=attrs)
-
-    def get_subwidgets(self, context: Any, id_: int, name: str, attrs: dict) -> list:
-        subwidgets = []
-
-        for index, (key, value) in enumerate(context.items()):
-            widget_attrs_key = attrs.copy()
-            widget_attrs_value = attrs.copy()
-            if id_:
-                widget_attrs_key["id"] = f"{id_}_key-index-{index}"
-                widget_attrs_value["id"] = f"{id_}_value-index-{index}"
-
-            subwidgets.append(self.key_widget.get_context(name, key, widget_attrs_key)["widget"])
-            subwidgets.append(self.value_widget.get_context(name, value, widget_attrs_value)["widget"])
-
-        return subwidgets
-
-
-class NestedFormWidget(forms.MultiWidget):
     template_name = "subforms/nested.html"
+    use_fieldset = True
 
     class Media:
         js = ["js/subforms.js"]
@@ -137,10 +143,88 @@ class NestedFormWidget(forms.MultiWidget):
 
     def __init__(self, form_class: type[forms.Form], attrs: dict[str, Any] | None = None) -> None:
         self.subform = form_class()
-        widgets = {name: bound_field.widget for name, bound_field in self.subform.fields.items()}
-        super().__init__(widgets=widgets, attrs=attrs)
+        self.widget_map: dict[str, forms.Widget] = {
+            name: (bound_field.widget() if isinstance(bound_field.widget, type) else bound_field.widget)
+            for name, bound_field in self.subform.fields.items()
+        }
+        super().__init__(attrs=attrs)
 
-    def decompress(self, value: Any) -> list[Any]:
-        if isinstance(value, Mapping):
-            return [value.get(name) for name in self.subform.fields]
-        return [None for _ in self.subform.fields]
+    def __deepcopy__(self, memo: dict[int, Any]) -> Any:
+        obj = super().__deepcopy__(memo)
+        obj.subform = copy.deepcopy(self.subform)
+        obj.widget_map = copy.deepcopy(self.widget_map)
+        return obj
+
+    @property
+    def needs_multipart_form(self) -> bool:
+        return any(widget.needs_multipart_form for widget in self.widget_map.values())
+
+    @property
+    def is_hidden(self) -> bool:
+        return all(widget.is_hidden for widget in self.widget_map.values())
+
+    @property
+    def media(self) -> forms.Media:
+        media = forms.Media(media=self.Media)
+        for widget in self.widget_map.values():
+            media += widget.media
+        return media
+
+    def value_from_datadict(self, data: dict[str, Any], files: MultiValueDict, name: Any) -> dict[str, Any]:
+        """
+        Parse nested form data from the form data.
+
+        :param data: Data from the form.
+        :param files: Files from the form.
+        :param name: Name of this widget.
+        """
+        # In some cases, this function can be hit with already processed data.
+        # If this happens, we can skip the rest of the data processing.
+        if name in data:
+            return data[name]
+
+        results: dict[str, Any] = {}
+
+        for widget_name, widget in self.widget_map.items():
+            key = f"{name}__{widget_name}" if name else widget_name
+            results[widget_name] = widget.value_from_datadict(data=data, files=files, name=key)
+
+        return results
+
+    def value_omitted_from_data(self, data: dict[str, Any], files: MultiValueDict, name: Any) -> bool:
+        return all(
+            widget.value_omitted_from_data(data=data, files=files, name=f"{name}__{widget_name}")
+            for widget_name, widget in self.widget_map.items()
+        )
+
+    def id_for_label(self, id_: Any) -> str:
+        return ""
+
+    def format_value(self, value: list[Any] | None) -> dict[str, Any]:
+        return value or {}
+
+    def get_context(self, name: str, value: dict[str, Any] | None, attrs: dict[str, Any]) -> dict[str, Any]:
+        context = super().get_context(name, value, attrs)
+
+        sub_attrs = context["widget"]["attrs"]
+        sub_value = context["widget"]["value"]
+
+        context["widget"]["subwidgets"] = self.get_subwidgets(name, sub_value, sub_attrs)
+        return context
+
+    def get_subwidgets(self, name: str, value: dict[str, Any], attrs: dict[str, Any]) -> list[dict[str, Any]]:
+        subwidgets: list[dict[str, Any]] = []
+
+        for widget_name, widget in self.widget_map.items():
+            widget_attrs = copy.deepcopy(attrs)
+
+            item_name = f"{name}__{widget_name}"
+            if "id" in widget_attrs:
+                widget_attrs["id"] += f"__{widget_name}"
+
+            item = value.get(widget_name)
+
+            subwidget_attrs = widget.get_context(item_name, item, widget_attrs)
+            subwidgets.append(subwidget_attrs["widget"])
+
+        return subwidgets

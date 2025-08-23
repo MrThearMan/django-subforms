@@ -4,12 +4,22 @@ from django import forms
 from django.contrib import admin
 
 from example_project.app.models import Thing
-from subforms.fields import DynamicArrayField, KeyValueField, NestedFormField
+from subforms.fields import DynamicArrayField, NestedFormField
 
 
 class FizzBuzzForm(forms.Form):
     fizz = forms.CharField()
     buzz = forms.IntegerField()
+
+
+class NestedArrayForm(forms.Form):
+    foo = forms.IntegerField()
+    bar = DynamicArrayField(subfield=NestedFormField(subform=FizzBuzzForm))
+
+
+class SubArrayForm(forms.Form):
+    foo = forms.IntegerField()
+    bar = DynamicArrayField(subfield=NestedFormField(subform=NestedArrayForm))
 
 
 class ExampleForm(forms.Form):
@@ -35,7 +45,7 @@ class RequiredForm(forms.Form):
 class ThingForm(forms.ModelForm):
     nested = NestedFormField(subform=ExampleForm)
     array = DynamicArrayField(subfield=NestedFormField(subform=ExampleForm))
-    dict = KeyValueField()
+    dict = NestedFormField(subform=SubArrayForm)
     required = DynamicArrayField(subfield=NestedFormField(subform=RequiredForm))
 
     class Meta:

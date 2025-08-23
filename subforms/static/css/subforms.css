@@ -21,20 +21,8 @@
     cursor: pointer;
 }
 
-.key-value-field .key-value-item {
-    margin-left: 1px;
-}
-
-.key-value-field .remove-key-value-item {
-    height: 12px;
-    display: inline-block;
-    align-items: center;
-    margin-left: 5px;
-    cursor: pointer;
-}
-
-.key-value-field .add-key-value-item {
-    cursor: pointer;
+.dynamic-array > ul {
+    margin: 0;
 }
 
 .nested-form {
@@ -48,15 +36,20 @@
     align-items: center;
 }
 
+.nested-form > div.related-widget-wrapper {
+    display: inline-table;
+}
+
 .nested-form > label.nested-form-label {
     line-height: normal;
     padding: 0;
     margin: 2px 0 2px 0!important;
     width: 25%;
-    max-width: 150px;
+    max-width: 100px;
     min-width: 100px;
     display: inline-flex;
     align-items: center;
+    vertical-align: top;
 }
 
 @media (max-width: 1024px) {

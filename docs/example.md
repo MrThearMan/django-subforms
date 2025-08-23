@@ -8,13 +8,15 @@ from django.db import models
 class Thing(models.Model):
     nested = models.JSONField(default=dict)
     array = models.JSONField(default=list)
+    dict = models.JSONField(default=dict)
+    required = models.JSONField()
 ```
 
 We can create the following ModelAdmin
 
 ```python
 from django.contrib import admin
-from myapp.models import Thing
+from .models import Thing
 
 @admin.register(Thing)
 class AdminThing(admin.ModelAdmin):
@@ -27,25 +29,46 @@ We can add a custom form to it using the nested form to it using
 ```python
 from django import forms
 from subforms.fields import DynamicArrayField, NestedFormField
+from .models import Thing
 
 class FizzBuzzForm(forms.Form):
     fizz = forms.CharField()
     buzz = forms.IntegerField()
 
+
+class NestedArrayForm(forms.Form):
+    foo = forms.IntegerField()
+    bar = DynamicArrayField(subfield=NestedFormField(subform=FizzBuzzForm))
+
+
+class SubArrayForm(forms.Form):
+    foo = forms.IntegerField()
+    bar = DynamicArrayField(subfield=NestedFormField(subform=NestedArrayForm))
+
+
 class ExampleForm(forms.Form):
     foo = forms.CharField()
     bar = NestedFormField(subform=FizzBuzzForm)
 
-class ThingForm(forms.ModelForm):
 
+class RequiredForm(forms.Form):
+    fizz = forms.CharField()
+    buzz = forms.CharField()
+
+
+class ThingForm(forms.ModelForm):
     nested = NestedFormField(subform=ExampleForm)
     array = DynamicArrayField(subfield=NestedFormField(subform=ExampleForm))
+    dict = NestedFormField(subform=SubArrayForm)
+    required = DynamicArrayField(subfield=NestedFormField(subform=RequiredForm))
 
     class Meta:
         model = Thing
         fields = [
             "nested",
             "array",
+            "dict",
+            "required",
         ]
 ```
 
@@ -72,12 +95,25 @@ thing = {
                 "buzz": 6,
             },
         },
-        {
-            "foo": "7",
-            "bar": {
-                "fizz": "8",
-                "buzz": 9,
+    ],
+    "dict": {
+        "foo": 7,
+        "bar": [
+            {
+                "foo": 8,
+                "bar": [
+                    {
+                        "fizz": "9",
+                        "buzz": 10,
+                    },
+                ],
             },
+        ],
+    },
+    "required": [
+        {
+            "fizz": "11",
+            "buzz": "12",
         },
     ],
 }
@@ -87,10 +123,3 @@ The nested forms will validate each of the fields, and errors
 will be shown like this:
 
 ![Error image](./img/error.png)
-
-> Note, that currently you cannot nest `DynamicArrayField` inside a
-> `DynamicArrayField`. If you do, you are only able to add one subitem
-> per parent item, and the rest of the items will be treated as if they
-> were added to additional parent items. This is likely not the behavior
-> you want, but I currently don't have a solution for this. Pull request
-> are welcome!

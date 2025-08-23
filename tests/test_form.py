@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import dataclasses
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from bs4 import BeautifulSoup
 from django import forms
-from django.forms import EmailField
-from django.http import QueryDict
+from django.contrib.admin.helpers import AdminForm
+from django.http import HttpResponse, QueryDict
 
 from example_project.app.admin import ThingForm
 from example_project.app.models import Thing
-from subforms.fields import DynamicArrayField, KeyValueField
+from subforms.fields import DynamicArrayField, NestedFormField
 
 if TYPE_CHECKING:
+    from bs4 import Tag
+    from django.forms import BoundField
     from django.http import HttpResponse
 
 
@@ -21,257 +24,164 @@ pytestmark = [
 ]
 
 
+@dataclasses.dataclass
+class FizzBuzzForm:
+    fizz: Tag
+    buzz: Tag
+
+
+@dataclasses.dataclass
+class NestedField:
+    foo: Tag
+    bar: FizzBuzzForm
+
+
+@dataclasses.dataclass
+class ArrayField:
+    foo: Tag
+    bar: FizzBuzzForm
+
+
+@dataclasses.dataclass
+class NestedDictField:
+    foo: Tag
+    bar: list[FizzBuzzForm]
+
+
+@dataclasses.dataclass
+class DictField:
+    foo: Tag
+    bar: list[NestedDictField]
+
+
+@dataclasses.dataclass
+class RequiredField:
+    fizz: Tag
+    buzz: Tag
+
+
+def get_nested_field(form: BeautifulSoup) -> NestedField:
+    nested: Tag = form.find(name="div", attrs={"class": "field-nested"})
+    assert nested is not None
+
+    foo: Tag = nested.find(name="input", attrs={"name": "nested__foo"})
+    assert foo is not None
+
+    bar__fizz: Tag = nested.find(name="input", attrs={"name": "nested__bar__fizz"})
+    assert bar__fizz is not None
+
+    bar__buzz: Tag = nested.find(name="input", attrs={"name": "nested__bar__buzz"})
+    assert bar__buzz is not None
+
+    return NestedField(
+        foo=foo,
+        bar=FizzBuzzForm(
+            fizz=bar__fizz,
+            buzz=bar__buzz,
+        ),
+    )
+
+
+def get_array_field(form: BeautifulSoup) -> list[ArrayField]:
+    array = form.find(name="div", attrs={"class": "field-array"})
+    assert array is not None
+
+    array_foo = array.find(name="input", attrs={"name": "array__0__foo"})
+    assert array_foo is not None
+
+    array_bar_fizz = array.find(name="input", attrs={"name": "array__0__bar__fizz"})
+    assert array_bar_fizz is not None
+
+    array_bar_fuzz = array.find(name="input", attrs={"name": "array__0__bar__buzz"})
+    assert array_bar_fuzz is not None
+
+    return [
+        ArrayField(
+            foo=array_foo,
+            bar=FizzBuzzForm(
+                fizz=array_bar_fizz,
+                buzz=array_bar_fuzz,
+            ),
+        ),
+    ]
+
+
+def get_dict_field(form: BeautifulSoup) -> DictField:
+    dict_field = form.find(name="div", attrs={"class": "field-dict"})
+    assert dict_field is not None
+
+    dict_foo = dict_field.find(name="input", attrs={"name": "dict__foo"})
+    assert dict_foo is not None
+
+    dict_bar_foo = dict_field.find(name="input", attrs={"name": "dict__bar__0__foo"})
+    assert dict_bar_foo is not None
+
+    dict__bar__bar__fizz = dict_field.find(name="input", attrs={"name": "dict__bar__0__bar__0__fizz"})
+    assert dict__bar__bar__fizz is not None
+
+    dict__bar__bar__buzz = dict_field.find(name="input", attrs={"name": "dict__bar__0__bar__0__buzz"})
+    assert dict__bar__bar__buzz is not None
+
+    return DictField(
+        foo=dict_foo,
+        bar=[
+            NestedDictField(
+                foo=dict_bar_foo,
+                bar=[
+                    FizzBuzzForm(
+                        fizz=dict__bar__bar__fizz,
+                        buzz=dict__bar__bar__buzz,
+                    ),
+                ],
+            ),
+        ],
+    )
+
+
+def get_required_field(form: BeautifulSoup) -> list[RequiredField]:
+    required_field = form.find(name="div", attrs={"class": "field-required"})
+    assert required_field is not None
+
+    required_fizz = required_field.find(name="input", attrs={"name": "required__0__fizz"})
+    assert required_fizz is not None
+
+    required_buzz = required_field.find(name="input", attrs={"name": "required__0__buzz"})
+    assert required_buzz is not None
+
+    return [
+        RequiredField(
+            fizz=required_fizz,
+            buzz=required_buzz,
+        ),
+    ]
+
+
 def test_admin_form_add(django_client):
-    result: HttpResponse = django_client.get("/admin/app/thing/add/", follow=True)
+    result: HttpResponse = django_client.get("/admin/app/thing/add/", follow=True)  # type: ignore[assignment]
 
     assert result.status_code == 200, result.content
 
     soup = BeautifulSoup(result.content, features="html.parser")
-
     form = soup.find(name="form", attrs={"id": "thing_form"})
     assert form is not None
 
-    fieldset = form.find(name="fieldset")
-    assert fieldset is not None
-
-    nested = fieldset.find(name="div", attrs={"class": "field-nested"})
-    assert nested is not None
-
-    nested_value = nested.find(name="div", attrs={"class": "nested-form"})
-    assert nested_value is not None
-
-    foo = nested_value.find(name="input", attrs={"name": "nested_foo"})
-    assert foo is not None
-
-    bar = nested_value.find(name="div", attrs={"class": "nested-form"})
-    assert bar is not None
-
-    bar_fizz = bar.find(name="input", attrs={"name": "nested_bar_fizz"})
-    assert bar_fizz is not None
-
-    bar_buzz = bar.find(name="input", attrs={"name": "nested_bar_buzz"})
-    assert bar_buzz is not None
-
-    array = fieldset.find(name="div", attrs={"class": "field-array"})
-    assert array is not None
-
-    array_value = array.find(name="div", attrs={"class": "dynamic-array"})
-    assert array_value is not None
-
-    array_add_button = array_value.find(name="a", attrs={"class": "add-array-item"})
-    assert array_add_button is not None
-    assert array_add_button.text == "Add item"
-
-    array_remove_button = array_value.find(name="a", attrs={"class": "remove-array-item"})
-    assert array_remove_button is not None
-
-    array_items = array_value.findAll(name="li", attrs={"class": "dynamic-array-item"})
-    assert len(array_items) == 1
-
-    array_nested = array_items[0].find(name="div", attrs={"class": "nested-form"})
-    assert array_nested is not None
-
-    array_foo = array_nested.find(name="input", attrs={"name": "array_foo"})
-    assert array_foo is not None
-
-    array_bar = array_nested.find(name="div", attrs={"class": "nested-form"})
-    assert array_foo is not None
-
-    array_bar_fizz = array_bar.find(name="input", attrs={"name": "array_bar_fizz"})
-    assert array_bar_fizz is not None
-
-    array_bar_fuzz = array_bar.find(name="input", attrs={"name": "array_bar_buzz"})
-    assert array_bar_fuzz is not None
-
-    keyvalue = fieldset.find(name="div", attrs={"class": "field-dict"})
-    assert keyvalue is not None
-
-    kayvalue_value = keyvalue.find(name="div", attrs={"class": "key-value-field"})
-    assert kayvalue_value is not None
-
-    keyvalue_add_button = kayvalue_value.find(name="a", attrs={"class": "add-key-value-item"})
-    assert keyvalue_add_button is not None
-    assert keyvalue_add_button.text == "Add item"
-
-    keyvalue_remove_button = kayvalue_value.find(name="a", attrs={"class": "remove-key-value-item"})
-    assert keyvalue_remove_button is not None
-
-    keyvalue_items = kayvalue_value.findAll(name="li", attrs={"class": "key-value-item"})
-    assert len(keyvalue_items) == 1
-
-    key_input = keyvalue_items[0].find(name="input", attrs={"id": "id_dict_key-index-0"})
-    assert key_input is not None
-
-    value_input = keyvalue_items[0].find(name="input", attrs={"id": "id_dict_value-index-0"})
-    assert value_input is not None
+    # Check that all fields are present
+    get_nested_field(form)
+    get_array_field(form)
+    get_dict_field(form)
+    get_required_field(form)
 
 
 def test_admin_form__edit(django_client):
     thing = Thing.objects.create(
-        nested={"foo": "1", "bar": {"fizz": "2", "buzz": 3}},
-        array=[{"foo": "4", "bar": {"fizz": "5", "buzz": 6}}, {"foo": "7", "bar": {"fizz": "8", "buzz": 9}}],
-        dict={"1": "2", "3": "4", "5": "6"},
-        required=[{"fizz": "11", "buzz": 11}],
-    )
-
-    result: HttpResponse = django_client.get(f"/admin/app/thing/{thing.id}/change", follow=True)
-
-    assert result.status_code == 200, result.content
-
-    soup = BeautifulSoup(result.content, features="html.parser")
-
-    form = soup.find(name="form", attrs={"id": "thing_form"})
-    assert form is not None
-
-    fieldset = form.find(name="fieldset")
-    assert fieldset is not None
-
-    nested = fieldset.find(name="div", attrs={"class": "field-nested"})
-    assert nested is not None
-
-    nested_value = nested.find(name="div", attrs={"class": "nested-form"})
-    assert nested_value is not None
-
-    foo = nested_value.find(name="input", attrs={"name": "nested_foo"})
-    assert foo is not None
-    assert foo.get("value") == "1"
-
-    bar = nested_value.find(name="div", attrs={"class": "nested-form"})
-    assert bar is not None
-
-    bar_fizz = bar.find(name="input", attrs={"name": "nested_bar_fizz"})
-    assert bar_fizz is not None
-    assert bar_fizz.get("value") == "2"
-
-    bar_buzz = bar.find(name="input", attrs={"name": "nested_bar_buzz"})
-    assert bar_buzz is not None
-    assert bar_buzz.get("value") == "3"
-
-    array = fieldset.find(name="div", attrs={"class": "field-array"})
-    assert array is not None
-
-    array_value = array.find(name="div", attrs={"class": "dynamic-array"})
-    assert array_value is not None
-
-    array_add_button = array_value.find(name="a", attrs={"class": "add-array-item"})
-    assert array_add_button is not None
-    assert array_add_button.text == "Add item"
-
-    array_remove_button = array_value.find(name="a", attrs={"class": "remove-array-item"})
-    assert array_remove_button is not None
-
-    array_items = array_value.findAll(name="li", attrs={"class": "dynamic-array-item"})
-    assert len(array_items) == 2
-
-    array_nested_1 = array_items[0].find(name="div", attrs={"class": "nested-form"})
-    assert array_nested_1 is not None
-
-    array_foo_1 = array_nested_1.find(name="input", attrs={"name": "array_foo"})
-    assert array_foo_1 is not None
-    assert array_foo_1.get("value") == "4"
-
-    array_bar_1 = array_nested_1.find(name="div", attrs={"class": "nested-form"})
-    assert array_bar_1 is not None
-
-    array_bar_fizz_1 = array_bar_1.find(name="input", attrs={"name": "array_bar_fizz"})
-    assert array_bar_fizz_1 is not None
-    assert array_bar_fizz_1.get("value") == "5"
-
-    array_bar_fuzz_1 = array_bar_1.find(name="input", attrs={"name": "array_bar_buzz"})
-    assert array_bar_fuzz_1 is not None
-    assert array_bar_fuzz_1.get("value") == "6"
-
-    array_nested_2 = array_items[1].find(name="div", attrs={"class": "nested-form"})
-    assert array_nested_1 is not None
-
-    array_foo_2 = array_nested_2.find(name="input", attrs={"name": "array_foo"})
-    assert array_foo_2 is not None
-    assert array_foo_2.get("value") == "7"
-
-    array_bar_2 = array_nested_2.find(name="div", attrs={"class": "nested-form"})
-    assert array_bar_2 is not None
-
-    array_bar_fizz_2 = array_bar_2.find(name="input", attrs={"name": "array_bar_fizz"})
-    assert array_bar_fizz_2 is not None
-    assert array_bar_fizz_2.get("value") == "8"
-
-    array_bar_fuzz_2 = array_bar_2.find(name="input", attrs={"name": "array_bar_buzz"})
-    assert array_bar_fuzz_2 is not None
-    assert array_bar_fuzz_2.get("value") == "9"
-
-    keyvalue = fieldset.find(name="div", attrs={"class": "field-dict"})
-    assert keyvalue is not None
-
-    kayvalue_value = keyvalue.find(name="div", attrs={"class": "key-value-field"})
-    assert kayvalue_value is not None
-
-    keyvalue_add_button = kayvalue_value.find(name="a", attrs={"class": "add-key-value-item"})
-    assert keyvalue_add_button is not None
-    assert keyvalue_add_button.text == "Add item"
-
-    keyvalue_remove_button = kayvalue_value.find(name="a", attrs={"class": "remove-key-value-item"})
-    assert keyvalue_remove_button is not None
-
-    keyvalue_items = kayvalue_value.findAll(name="li", attrs={"class": "key-value-item"})
-    assert len(keyvalue_items) == 3
-
-    key_input_1 = keyvalue_items[0].find(name="input", attrs={"id": "id_dict_key-index-0"})
-    assert key_input_1 is not None
-    assert key_input_1.get("value") == "1"
-
-    value_input_1 = keyvalue_items[0].find(name="input", attrs={"id": "id_dict_value-index-0"})
-    assert value_input_1 is not None
-    assert value_input_1.get("value") == "2"
-
-    key_input_2 = keyvalue_items[1].find(name="input", attrs={"id": "id_dict_key-index-1"})
-    assert key_input_2 is not None
-    assert key_input_2.get("value") == "3"
-
-    value_input_2 = keyvalue_items[1].find(name="input", attrs={"id": "id_dict_value-index-1"})
-    assert value_input_2 is not None
-    assert value_input_2.get("value") == "4"
-
-    key_input_3 = keyvalue_items[2].find(name="input", attrs={"id": "id_dict_key-index-2"})
-    assert key_input_3 is not None
-    assert key_input_3.get("value") == "5"
-
-    value_input_3 = keyvalue_items[2].find(name="input", attrs={"id": "id_dict_value-index-2"})
-    assert value_input_3 is not None
-    assert value_input_3.get("value") == "6"
-
-
-def test_form():
-    data = {
-        "nested_foo": ["1"],
-        "nested_bar_fizz": ["2"],
-        "nested_bar_buzz": [3],
-        "array_foo": ["4", "7"],
-        "array_bar_fizz": ["5", "8"],
-        "array_bar_buzz": [6, 9],
-        "dict": ["1", "2", "3", "4"],
-        "required_fizz": ["woo"],
-        "required_buzz": ["hoo"],
-    }
-
-    form_data = QueryDict(mutable=True)
-    for key, value in data.items():
-        form_data.setlist(key, value)
-
-    form = ThingForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {}
-
-    cleaned_data = form.clean()
-
-    assert cleaned_data == {
-        "nested": {
+        nested={
             "foo": "1",
             "bar": {
                 "fizz": "2",
                 "buzz": 3,
             },
         },
-        "array": [
+        array=[
             {
                 "foo": "4",
                 "bar": {
@@ -279,24 +189,100 @@ def test_form():
                     "buzz": 6,
                 },
             },
-            {
-                "foo": "7",
-                "bar": {
-                    "fizz": "8",
-                    "buzz": 9,
+        ],
+        dict={
+            "foo": 7,
+            "bar": [
+                {
+                    "foo": 8,
+                    "bar": [
+                        {
+                            "fizz": "9",
+                            "buzz": 10,
+                        },
+                    ],
                 },
-            },
-        ],
-        "dict": {
-            "1": "2",
-            "3": "4",
+            ],
         },
-        "required": [
+        required=[
             {
-                "buzz": "hoo!",
-                "fizz": "woo!",
+                "fizz": "11",
+                "buzz": "12",
             },
         ],
+    )
+
+    result: HttpResponse = django_client.get(f"/admin/app/thing/{thing.id}/change", follow=True)  # type: ignore[assignment]
+
+    assert result.status_code == 200, result.content
+
+    soup = BeautifulSoup(result.content, features="html.parser")
+    form = soup.find(name="form", attrs={"id": "thing_form"})
+    assert form is not None
+
+    nested_field = get_nested_field(form)
+
+    assert nested_field.foo.get("value") == "1"
+    assert nested_field.bar.fizz.get("value") == "2"
+    assert nested_field.bar.buzz.get("value") == "3"
+
+    array_field = get_array_field(form)
+
+    assert array_field[0].foo.get("value") == "4"
+    assert array_field[0].bar.fizz.get("value") == "5"
+    assert array_field[0].bar.buzz.get("value") == "6"
+
+    dict_field = get_dict_field(form)
+
+    assert dict_field.foo.get("value") == "7"
+    assert dict_field.bar[0].foo.get("value") == "8"
+    assert dict_field.bar[0].bar[0].fizz.get("value") == "9"
+    assert dict_field.bar[0].bar[0].buzz.get("value") == "10"
+
+    required_field = get_required_field(form)
+
+    assert required_field[0].fizz.get("value") == "11"
+    assert required_field[0].buzz.get("value") == "12"
+
+
+def test_form():
+    data = {
+        #
+        # nested
+        "nested__foo": ["1"],
+        "nested__bar__fizz": ["2"],
+        "nested__bar__buzz": ["3"],
+        #
+        # array
+        "array__0__foo": ["4"],
+        "array__0__bar__fizz": ["5"],
+        "array__0__bar__buzz": ["6"],
+        #
+        # dict
+        "dict__foo": ["7"],
+        "dict__bar__0__foo": ["8"],
+        "dict__bar__0__bar__0__fizz": ["9"],
+        "dict__bar__0__bar__0__buzz": ["10"],
+        #
+        # required
+        "required__0__fizz": ["11"],
+        "required__0__buzz": ["12"],
+    }
+
+    form_data = QueryDict(mutable=True)
+    for key, value in data.items():
+        form_data.setlist(key, value)
+
+    form = ThingForm(data=form_data)
+    assert form.is_valid(), form.errors
+
+    cleaned_data = form.cleaned_data
+
+    assert cleaned_data == {
+        "nested": {"foo": "1", "bar": {"buzz": 3, "fizz": "2"}},
+        "array": [{"foo": "4", "bar": {"buzz": 6, "fizz": "5"}}],
+        "dict": {"foo": 7, "bar": [{"foo": 8, "bar": [{"buzz": 10, "fizz": "9"}]}]},
+        "required": [{"buzz": "12!", "fizz": "11!"}],
     }
 
 
@@ -304,29 +290,44 @@ def test_form__missing__all():
     form_data = QueryDict(mutable=True)
 
     form = ThingForm(data=form_data)
+
     assert form.errors == {
         "array": ["This field is required."],
         "nested": [
-            "Foo: This field is required.",
-            "Bar:  Fizz: This field is required.",
-            "Bar:  Buzz: This field is required.",
+            "foo: This field is required.",
+            "bar: fizz: This field is required.",
+            "bar: buzz: This field is required.",
         ],
-        "dict": ["This field is required."],
+        "dict": [
+            "foo: This field is required.",
+            "bar: This field is required.",
+        ],
         "required": ["This field is required."],
     }
 
 
 def test_form__missing__nested_bar_buzz():
     data = {
-        "nested_foo": ["1"],
-        "nested_bar_fizz": ["2"],
-        "nested_bar_buzz": [],
-        "array_foo": ["4", "7"],
-        "array_bar_fizz": ["5", "8"],
-        "array_bar_buzz": [6, 9],
-        "dict": ["1", "2", "3", "4"],
-        "required_fizz": ["woo"],
-        "required_buzz": ["hoo"],
+        #
+        # nested
+        "nested__foo": ["1"],
+        "nested__bar__fizz": ["2"],
+        "nested__bar__buzz": [],
+        #
+        # array
+        "array__0__foo": ["4"],
+        "array__0__bar__fizz": ["5"],
+        "array__0__bar__buzz": ["6"],
+        #
+        # dict
+        "dict__foo": ["7"],
+        "dict__bar__0__foo": ["8"],
+        "dict__bar__0__bar__0__fizz": ["9"],
+        "dict__bar__0__bar__0__buzz": ["10"],
+        #
+        # required
+        "required__0__fizz": ["11"],
+        "required__0__buzz": ["12"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -334,21 +335,32 @@ def test_form__missing__nested_bar_buzz():
         form_data.setlist(key, value)
 
     form = ThingForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {"nested": ["Bar:  Buzz: This field is required."]}
+
+    assert form.errors == {"nested": ["bar: buzz: This field is required."]}
 
 
 def test_form__missing__array_bar_fizz_1():
     data = {
-        "nested_foo": ["1"],
-        "nested_bar_fizz": ["2"],
-        "nested_bar_buzz": [3],
-        "array_foo": ["4", "7"],
-        "array_bar_fizz": ["", "5"],
-        "array_bar_buzz": [6, 9],
-        "dict": ["1", "2", "3", "4"],
-        "required_fizz": ["woo"],
-        "required_buzz": ["hoo"],
+        #
+        # nested
+        "nested__foo": ["1"],
+        "nested__bar__fizz": ["2"],
+        "nested__bar__buzz": ["3"],
+        #
+        # array
+        "array__0__foo": ["4"],
+        "array__0__bar__fizz": [],
+        "array__0__bar__buzz": ["6"],
+        #
+        # dict
+        "dict__foo": ["7"],
+        "dict__bar__0__foo": ["8"],
+        "dict__bar__0__bar__0__fizz": ["9"],
+        "dict__bar__0__bar__0__buzz": ["10"],
+        #
+        # required
+        "required__0__fizz": ["11"],
+        "required__0__buzz": ["12"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -356,19 +368,32 @@ def test_form__missing__array_bar_fizz_1():
         form_data.setlist(key, value)
 
     form = ThingForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {"array": ["Validation error on item 0: Bar:  Fizz: This field is required."]}
+
+    assert form.errors == {"array": ["index 0: bar: fizz: This field is required."]}
 
 
 def test_form__missing__required():
     data = {
-        "nested_foo": ["1"],
-        "nested_bar_fizz": ["2"],
-        "nested_bar_buzz": [3],
-        "array_foo": ["4", "7"],
-        "array_bar_fizz": ["5", "8"],
-        "array_bar_buzz": [6, 9],
-        "dict": ["1", "2", "3", "4"],
+        #
+        # nested
+        "nested__foo": ["1"],
+        "nested__bar__fizz": ["2"],
+        "nested__bar__buzz": ["3"],
+        #
+        # array
+        "array__0__foo": ["4"],
+        "array__0__bar__fizz": ["5"],
+        "array__0__bar__buzz": ["6"],
+        #
+        # dict
+        "dict__foo": ["7"],
+        "dict__bar__0__foo": ["8"],
+        "dict__bar__0__bar__0__fizz": ["9"],
+        "dict__bar__0__bar__0__buzz": ["10"],
+        #
+        # required
+        "required__0__fizz": [],
+        "required__0__buzz": [],
     }
 
     form_data = QueryDict(mutable=True)
@@ -376,21 +401,37 @@ def test_form__missing__required():
         form_data.setlist(key, value)
 
     form = ThingForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {"required": ["This field is required."]}
+
+    assert form.errors == {
+        "required": [
+            "index 0: fizz: This field is required.",
+            "index 0: buzz: This field is required.",
+        ],
+    }
 
 
 def test_form__missing__required__raise_error():
     data = {
-        "nested_foo": ["1"],
-        "nested_bar_fizz": ["2"],
-        "nested_bar_buzz": [3],
-        "array_foo": ["4", "7"],
-        "array_bar_fizz": ["5", "8"],
-        "array_bar_buzz": [6, 9],
-        "dict": ["1", "2", "3", "4"],
-        "required_fizz": ["raise"],
-        "required_buzz": ["hoo"],
+        #
+        # nested
+        "nested__foo": ["1"],
+        "nested__bar__fizz": ["2"],
+        "nested__bar__buzz": ["3"],
+        #
+        # array
+        "array__0__foo": ["4"],
+        "array__0__bar__fizz": ["5"],
+        "array__0__bar__buzz": ["6"],
+        #
+        # dict
+        "dict__foo": ["7"],
+        "dict__bar__0__foo": ["8"],
+        "dict__bar__0__bar__0__fizz": ["9"],
+        "dict__bar__0__bar__0__buzz": ["10"],
+        #
+        # required
+        "required__0__fizz": ["raise"],
+        "required__0__buzz": ["12"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -398,21 +439,32 @@ def test_form__missing__required__raise_error():
         form_data.setlist(key, value)
 
     form = ThingForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {"required": ["Validation error on item 0: Fizz: This value is not allowed"]}
+
+    assert form.errors == {"required": ["index 0: fizz: This value is not allowed"]}
 
 
 def test_form__missing__required__raise_error__non_field_error():
     data = {
-        "nested_foo": ["1"],
-        "nested_bar_fizz": ["2"],
-        "nested_bar_buzz": [3],
-        "array_foo": ["4", "7"],
-        "array_bar_fizz": ["5", "8"],
-        "array_bar_buzz": [6, 9],
-        "dict": ["1", "2", "3", "4"],
-        "required_fizz": ["error"],
-        "required_buzz": ["hoo"],
+        #
+        # nested
+        "nested__foo": ["1"],
+        "nested__bar__fizz": ["2"],
+        "nested__bar__buzz": ["3"],
+        #
+        # array
+        "array__0__foo": ["4"],
+        "array__0__bar__fizz": ["5"],
+        "array__0__bar__buzz": ["6"],
+        #
+        # dict
+        "dict__foo": ["7"],
+        "dict__bar__0__foo": ["8"],
+        "dict__bar__0__bar__0__fizz": ["9"],
+        "dict__bar__0__bar__0__buzz": ["10"],
+        #
+        # required
+        "required__0__fizz": ["error"],
+        "required__0__buzz": ["12"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -420,8 +472,8 @@ def test_form__missing__required__raise_error__non_field_error():
         form_data.setlist(key, value)
 
     form = ThingForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {"required": ["Validation error on item 0: This value is not allowed"]}
+
+    assert form.errors == {"required": ["index 0: This value is not allowed"]}
 
 
 def test_form__array():
@@ -431,7 +483,8 @@ def test_form__array():
 
     data = {
         "foo": ["1"],
-        "bar": ["2", "3"],
+        "bar__0": ["2"],
+        "bar__1": ["3"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -439,14 +492,11 @@ def test_form__array():
         form_data.setlist(key, value)
 
     form = ExampleForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {}
+    assert form.is_valid(), form.errors
 
-    cleaned_data = form.clean()
-
-    assert cleaned_data == {
-        "bar": ["2", "3"],
+    assert form.cleaned_data == {
         "foo": "1",
+        "bar": ["2", "3"],
     }
 
 
@@ -457,7 +507,8 @@ def test_form__array__max_length():
 
     data = {
         "foo": ["1"],
-        "bar": ["2", "3"],
+        "bar__0": ["2"],
+        "bar__1": ["3"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -465,18 +516,31 @@ def test_form__array__max_length():
         form_data.setlist(key, value)
 
     form = ExampleForm(data=form_data)
-    assert form.is_bound
+
+    assert not form.is_valid()
     assert form.errors == {"bar": ["Ensure there are 1 or fewer items (currently 2)."]}
 
 
-def test_form__keyvalue__incorrect_data():
+def test_form__array_nested():
+    class FizzBuzzForm(forms.Form):
+        fizz = forms.CharField()
+        buzz = forms.IntegerField()
+
+    class SubForm(forms.Form):
+        foo = forms.IntegerField()
+        bar = DynamicArrayField(NestedFormField(FizzBuzzForm))
+
     class ExampleForm(forms.Form):
-        foo = forms.CharField()
-        bar = KeyValueField(value_field=EmailField)
+        foo = forms.IntegerField()
+        array = DynamicArrayField(NestedFormField(SubForm))
 
     data = {
-        "foo": ["1"],
-        "bar": ["2", "3"],
+        "foo": ["0"],
+        "array__0__foo": ["1"],
+        "array__0__bar__0__fizz": ["2"],
+        "array__0__bar__0__buzz": ["3"],
+        "array__0__bar__1__fizz": ["4"],
+        "array__0__bar__1__buzz": ["5"],
     }
 
     form_data = QueryDict(mutable=True)
@@ -484,24 +548,74 @@ def test_form__keyvalue__incorrect_data():
         form_data.setlist(key, value)
 
     form = ExampleForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {"bar": ["Validation error on value 0: Enter a valid email address."]}
+    assert form.is_valid(), form.errors
+
+    assert form.cleaned_data == {
+        "foo": 0,
+        "array": [
+            {
+                "foo": 1,
+                "bar": [
+                    {"fizz": "2", "buzz": 3},
+                    {"fizz": "4", "buzz": 5},
+                ],
+            },
+        ],
+    }
 
 
-def test_form__keyvalue__max_length():
-    class ExampleForm(forms.Form):
-        foo = forms.CharField()
-        bar = KeyValueField(max_length=1)
-
+def test_admin_form():
     data = {
-        "foo": ["1"],
-        "bar": ["2", "3", "4", "5"],
+        #
+        # nested
+        "nested__foo": ["1"],
+        "nested__bar__fizz": ["2"],
+        "nested__bar__buzz": ["3"],
+        #
+        # array
+        "array__0__foo": ["4"],
+        "array__0__bar__fizz": ["5"],
+        "array__0__bar__buzz": ["6"],
+        #
+        # dict
+        "dict__foo": ["7"],
+        "dict__bar__0__foo": ["8"],
+        "dict__bar__0__bar__0__fizz": ["9"],
+        "dict__bar__0__bar__0__buzz": ["10"],
+        #
+        # required
+        "required__0__fizz": ["11"],
+        "required__0__buzz": ["12"],
     }
 
     form_data = QueryDict(mutable=True)
     for key, value in data.items():
         form_data.setlist(key, value)
 
-    form = ExampleForm(data=form_data)
-    assert form.is_bound
-    assert form.errors == {"bar": ["Ensure there are 1 or fewer items (currently 2)."]}
+    form = ThingForm(data=form_data)
+    assert form.is_valid(), form.errors
+
+    fieldsets = [(None, {"fields": ["nested", "array", "dict", "required"]})]
+
+    admin_form = AdminForm(
+        form=form,
+        fieldsets=fieldsets,
+        prepopulated_fields={},
+        readonly_fields=(),
+        model_admin=None,
+    )
+
+    values: dict[str, Any] = {}
+
+    for fieldset in admin_form:
+        for field_line in fieldset:
+            for admin_field in field_line:
+                bound_field: BoundField = admin_field.field
+                values[bound_field.name] = bound_field.value()
+
+    assert values == {
+        "nested": {"foo": "1", "bar": {"buzz": "3", "fizz": "2"}},
+        "array": [{"foo": "4", "bar": {"buzz": "6", "fizz": "5"}}],
+        "dict": {"foo": "7", "bar": [{"foo": "8", "bar": [{"buzz": "10", "fizz": "9"}]}]},
+        "required": [{"buzz": "12", "fizz": "11"}],
+    }

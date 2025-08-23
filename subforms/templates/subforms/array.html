@@ -3,7 +3,7 @@
 
 {% spaceless %}
 <div class="related-widget-wrapper">
-    <div class="dynamic-array" data-count="{{ widget.subwidgets|length }}">
+    <div class="dynamic-array" data-next="{{ widget.subwidgets|length }}" id="{{ widget.attrs.id }}">
         <ul>
             {% for subwidget in widget.subwidgets %}
                 <li class="dynamic-array-item">
