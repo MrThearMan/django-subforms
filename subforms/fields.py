@@ -186,7 +186,7 @@ class KeyValueField(MultiValueField):
                 key = next(data_iterable)
                 value = next(data_iterable)
                 data[key] = value
-            except StopIteration:  # noqa:  PERF203
+            except StopIteration:
                 break
 
         return data

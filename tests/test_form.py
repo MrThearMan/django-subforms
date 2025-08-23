@@ -1,18 +1,31 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from bs4 import BeautifulSoup
 from django import forms
 from django.forms import EmailField
-from django.http import HttpResponse, QueryDict
+from django.http import QueryDict
 
+from example_project.app.admin import ThingForm
+from example_project.app.models import Thing
 from subforms.fields import DynamicArrayField, KeyValueField
-from tests.myapp.admin import ThingForm
-from tests.myapp.models import Thing
 
-pytestmark = pytest.mark.django_db
+if TYPE_CHECKING:
+    from django.http import HttpResponse
+
+
+pytestmark = [
+    pytest.mark.django_db,
+]
 
 
 def test_admin_form_add(django_client):
-    result: HttpResponse = django_client.get("/admin/myapp/thing/add/", follow=True)
+    result: HttpResponse = django_client.get("/admin/app/thing/add/", follow=True)
+
+    assert result.status_code == 200, result.content
+
     soup = BeautifulSoup(result.content, features="html.parser")
 
     form = soup.find(name="form", attrs={"id": "thing_form"})
@@ -101,7 +114,10 @@ def test_admin_form__edit(django_client):
         required=[{"fizz": "11", "buzz": 11}],
     )
 
-    result: HttpResponse = django_client.get(f"/admin/myapp/thing/{thing.id}/change", follow=True)
+    result: HttpResponse = django_client.get(f"/admin/app/thing/{thing.id}/change", follow=True)
+
+    assert result.status_code == 200, result.content
+
     soup = BeautifulSoup(result.content, features="html.parser")
 
     form = soup.find(name="form", attrs={"id": "thing_form"})

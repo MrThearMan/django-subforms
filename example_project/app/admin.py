@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from django import forms
 from django.contrib import admin
 
+from example_project.app.models import Thing
 from subforms.fields import DynamicArrayField, KeyValueField, NestedFormField
-from tests.myapp.models import Thing
 
 
 class FizzBuzzForm(forms.Form):
@@ -19,7 +21,7 @@ class RequiredForm(forms.Form):
     fizz = forms.CharField()
     buzz = forms.CharField()
 
-    def clean(self):
+    def clean(self) -> None:
         for field, value in self.cleaned_data.items():
             if value == "raise":
                 msg = "This value is not allowed"

@@ -9,7 +9,7 @@ If you don't find what you are looking for, proceed with the steps below.
 
 Please file a [bug report]. If you are not using the latest version of the library,
 please upgrade and see if that fixes the issue. If not, please create a minimal example
-that demonstrates the bug, and instructions on how to create that setup from a new virtual
+that demonstrates the bug, and instructions on how to create that setup from a new virtual[CONTRIBUTING.md](../undine/CONTRIBUTING.md)
 environment. Also include any error tracebacks (unabridged when possible). This will help
 a lot when diagnosing the bug. Do not use pictures to include the traceback.
 

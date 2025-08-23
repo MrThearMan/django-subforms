@@ -23,17 +23,17 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.0",
     "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
     "Intended Audience :: Developers",
     "Natural Language :: English",
 ]
-requires-python = ">=3.10,<4"
+requires-python = ">=3.11,<4"
 dynamic = [
     "dependencies",
 ]
@@ -56,29 +56,37 @@ Django = ">=4.2"
 [tool.poetry.group.test.dependencies]
 pytest = "8.4.1"
 pytest-django = "4.11.1"
-coverage = "7.9.2"
-tox = "4.28.0"
-tox-gh-actions = "3.3.0"
+coverage = "7.10.4"
 beautifulsoup4 = "4.13.4"
+nox = "2025.5.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "1.6.1"
-pymdown-extensions = "10.16"
+pymdown-extensions = "10.16.1"
 mkdocs-mermaid2-plugin = "1.2.1"
 
 [tool.poetry.group.lint.dependencies]
-pre-commit = "4.2.0"
+pre-commit = "4.3.0"
+mypy = "1.17.1"
+django-stubs = "5.2.2"
 
 [tool.ruff]
 fix = true
 unsafe-fixes = true
 line-length = 120
 extend-exclude = [
-    "tests*",
+    "tests/*",
 ]
-lint.explicit-preview-rules = true
-lint.preview = true
-lint.select = [
+
+[tool.ruff.format]
+# Enable reformatting of code snippets in docstrings.
+docstring-code-format = true
+preview = true
+
+[tool.ruff.lint]
+explicit-preview-rules = true
+preview = true
+select = [
     "A",        # flake8-builtins
     "ANN",      # flake8-annotations
     "ARG",      # flake8-unused-arguments
@@ -131,7 +139,7 @@ lint.select = [
     "W",        # pycodestyle warnings
 ]
 # Preview rules
-lint.extend-select = [
+extend-select = [
     "B909",     # loop-iterator-mutation
     "FURB110",  # if-exp-instead-of-or-operator
     "FURB142",  # for-loop-set-mutations
@@ -150,9 +158,7 @@ lint.extend-select = [
     "RUF022",   # unsorted-dunder-all
     "UP042",    # replace-str-enum
 ]
-lint.ignore = [
-    "ANN101",   # Missing type annotation for `self` in method
-    "ANN102",   # Missing type annotation for `cls` in method
+ignore = [
     "ANN401",   # Any-typing allowed
     "ARG001",   # Unused function argument
     "ARG002",   # Unused method argument
@@ -205,12 +211,29 @@ lint.ignore = [
 [tool.ruff.lint.isort]
 combine-as-imports = false
 split-on-trailing-comma = false
+required-imports = [
+    "from __future__ import annotations",
+]
 known-third-party = [
     "django",
 ]
 known-first-party = [
     "subforms",
 ]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.flake8-annotations]
+suppress-dummy-args = true
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+quote-annotations = false
 
 [tool.ruff.lint.flake8-import-conventions]
 banned-from = [
@@ -236,6 +259,9 @@ banned-from = [
     "yaml",
 ]
 
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
+
 [tool.ruff.lint.flake8-self]
 extend-ignore-names = [
     "_base_manager",
@@ -246,8 +272,22 @@ extend-ignore-names = [
 [tool.ruff.lint.mccabe]
 max-complexity = 13
 
+[tool.ruff.lint.pylint]
+max-returns = 8
+max-positional-args = 5
+max-args = 10
+max-bool-expr = 6
+
 [tool.coverage.run]
 relative_files = true
+branch = true
+include = [
+    "subforms/*",
+    "tests/*",  # Make sure all tests are actually run
+]
+omit = [
+    "undine/__main__.py",
+]
 
 [tool.coverage.report]
 omit = [
@@ -264,40 +304,14 @@ exclude_lines = [
 ]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "tests.project.settings"
-addopts = "-vv -s --disable-warnings"
+DJANGO_SETTINGS_MODULE = "example_project.project.settings"
+addopts = "--disable-warnings"
 
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py{310, 311, 312, 313}-django{42, 50, 51}
-isolated_build = true
-
-[gh-actions]
-python =
-    3.10: py310
-    3.11: py311
-    3.12: py312
-    3.13: py313
-
-[testenv]
-whitelist_externals =
-    poetry
-setenv =
-    PYTHONPATH = {toxinidir}
-deps =
-    django42: Django>=4.2,<4.3
-    django50: Django>=5.0,<5.1
-    django51: Django>=5.1,<5.2
-
-    pytest
-    coverage
-    pytest-django
-    beautifulsoup4
-commands =
-    coverage run -m pytest -vv -s --log-cli-level=INFO
-"""
+[tool.mypy]
+plugins = [
+    "mypy_django_plugin.main",
+]
 
 [build-system]
-requires = ["poetry-core>=1.9.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"

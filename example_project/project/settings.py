@@ -1,13 +1,19 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from django.core.management.utils import get_random_secret_key
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+DEBUG = True
 SECRET_KEY = get_random_secret_key()
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+ROOT_URLCONF = "example_project.project.urls"
+WSGI_APPLICATION = "example_project.project.wsgi.application"
+
+ALLOWED_HOSTS = []
+INTERNAL_IPS = ["127.0.0.1"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -16,9 +22,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    #
     "subforms",
-    "tests.myapp",
+    "example_project.app",
 ]
 
 MIDDLEWARE = [
@@ -61,6 +66,8 @@ CACHES = {
     }
 }
 
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -68,15 +75,36 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-ROOT_URLCONF = "tests.project.urls"
-WSGI_APPLICATION = "tests.project.wsgi.application"
-LANGUAGE_CODE = "en"
+
+USE_I18N = True
+LANGUAGE_CODE = "en-us"
 LANGUAGES = [
     ("en", "English"),
-    ("fi", "Finland"),
+    ("fi", "Finnish"),
 ]
-TIME_ZONE = "UTC"
-USE_I18N = True
-USE_L10N = True
+
 USE_TZ = True
+TIME_ZONE = "UTC"
+
 STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "static"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# If you want to run "collectstatic", comment out this for the duration of the command.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.memory.InMemoryStorage",
+        "OPTIONS": {
+            "location": MEDIA_ROOT,
+            "base_url": MEDIA_URL,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.core.files.storage.memory.InMemoryStorage",
+        "OPTIONS": {
+            "location": STATIC_ROOT,
+            "base_url": STATIC_URL,
+        },
+    },
+}
