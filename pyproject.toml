@@ -56,14 +56,14 @@ Django = ">=4.2"
 [tool.poetry.group.test.dependencies]
 pytest = "8.4.1"
 pytest-django = "4.11.1"
-coverage = "7.10.4"
-beautifulsoup4 = "4.13.4"
+coverage = "7.10.6"
+beautifulsoup4 = "4.13.5"
 nox = "2025.5.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "1.6.1"
 pymdown-extensions = "10.16.1"
-mkdocs-mermaid2-plugin = "1.2.1"
+mkdocs-mermaid2-plugin = "1.2.2"
 
 [tool.poetry.group.lint.dependencies]
 pre-commit = "4.3.0"
