@@ -25,18 +25,27 @@ class DynamicArrayField(forms.Field):
         "too_long": gettext_lazy("Ensure there are %(max_length)s or fewer items (currently %(items)s)."),
     }
 
-    def __init__(self, subfield: type[forms.Field] | forms.Field = forms.CharField, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        subfield: type[forms.Field] | forms.Field = forms.CharField,
+        *,
+        remove_empty_items: bool = True,
+        **kwargs: Any,
+    ) -> None:
         # Compatibility with 'django.contrib.postgres.fields.array.ArrayField'
         if "base_field" in kwargs:  # pragma: no cover
             subfield = kwargs.pop("base_field")
 
-        self.subfield: forms.Field = subfield() if isinstance(subfield, type) else copy.deepcopy(subfield)
+        self.subfield: forms.Field = (
+            subfield(required=kwargs.get("required", True)) if isinstance(subfield, type) else copy.deepcopy(subfield)
+        )
         kwargs.setdefault(
             "widget",
             self.widget(subwidget=self.subfield.widget)
             if issubclass(self.widget, DynamicArrayWidget)
             else DynamicArrayWidget(subwidget=self.subfield.widget),
         )
+        self.remove_empty_items = remove_empty_items
         self.max_length = kwargs.pop("max_length", None)
         super().__init__(**kwargs)
 
@@ -48,6 +57,9 @@ class DynamicArrayField(forms.Field):
     def clean(self, value: list[Any]) -> list[Any]:
         cleaned_data: list[Any] = []
         errors: list[ValidationError] = []
+
+        if self.remove_empty_items:
+            value = [item for item in value if item not in self.empty_values]
 
         if self.max_length is not None and len(value) > self.max_length:
             error = ValidationError(
