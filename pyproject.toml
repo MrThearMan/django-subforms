@@ -62,12 +62,12 @@ nox = "2025.11.12"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "1.6.1"
-pymdown-extensions = "10.18"
+pymdown-extensions = "10.19.1"
 mkdocs-mermaid2-plugin = "1.2.3"
 
 [tool.poetry.group.lint.dependencies]
 pre-commit = "4.5.0"
-mypy = "1.19.0"
+mypy = "1.19.1"
 django-stubs = "5.2.8"
 
 [tool.ruff]
