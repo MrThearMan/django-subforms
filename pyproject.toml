@@ -56,19 +56,19 @@ Django = ">=4.2"
 [tool.poetry.group.test.dependencies]
 pytest = "9.0.2"
 pytest-django = "4.11.1"
-coverage = "7.13.1"
+coverage = "7.13.2"
 beautifulsoup4 = "4.14.3"
 nox = "2025.11.12"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "1.6.1"
-pymdown-extensions = "10.20"
+pymdown-extensions = "10.20.1"
 mkdocs-mermaid2-plugin = "1.2.3"
 
 [tool.poetry.group.lint.dependencies]
 pre-commit = "4.5.1"
 mypy = "1.19.1"
-django-stubs = "5.2.8"
+django-stubs = "5.2.9"
 
 [tool.ruff]
 fix = true
