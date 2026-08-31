@@ -5,6 +5,7 @@ Given the following model:
 ```python
 from django.db import models
 
+
 class Thing(models.Model):
     nested = models.JSONField(default=dict)
     array = models.JSONField(default=list)
@@ -18,6 +19,7 @@ We can create the following ModelAdmin
 from django.contrib import admin
 from .models import Thing
 
+
 @admin.register(Thing)
 class AdminThing(admin.ModelAdmin):
     pass
@@ -30,6 +32,7 @@ We can add a custom form to it using the nested form to it using
 from django import forms
 from subforms.fields import DynamicArrayField, NestedFormField
 from .models import Thing
+
 
 class FizzBuzzForm(forms.Form):
     fizz = forms.CharField()
