@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django import forms
 from django.contrib.postgres.utils import prefix_validation_error
@@ -11,6 +11,9 @@ from django.forms.models import ALL_FIELDS
 from django.utils.translation import gettext_lazy
 
 from .widgets import DynamicArrayWidget, NestedFormWidget
+
+if TYPE_CHECKING:
+    from django.utils.functional import Promise
 
 __all__ = [
     "DynamicArrayField",
@@ -101,7 +104,7 @@ class DynamicArrayField(forms.Field):
     def validate(self, value: list) -> None:
         pass
 
-    def has_changed(self, initial: dict[str, Any], data: dict[str, Any]) -> bool:  # pragma: no cover
+    def has_changed(self, initial: Any, data: Any) -> bool:  # pragma: no cover
         if not data and not initial:
             return False
         return super().has_changed(initial, data)
@@ -140,7 +143,7 @@ class NestedFormField(forms.Field):
     def clean(self, value: dict[str, Any]) -> dict[str, Any]:
         form = self.subform(data=value)
         if not form.is_valid():
-            errors: list[str] = [
+            errors: list[str | Promise] = [
                 (f"{field_name}: {error.message}" if field_name != ALL_FIELDS else error.message)
                 for field_name, error_data in form.errors.items()
                 for error in error_data.as_data()
@@ -159,11 +162,11 @@ class NestedFormField(forms.Field):
         # so that the app can still work.
         parsed = value.replace("=>", ":").replace('\\"', '"').replace('""', '"')
         parsed = "{" + parsed + "}"
-        value = json.loads(parsed)
+        data: dict[str, Any] = json.loads(parsed)
 
         form = self.subform()
-        for key, val in value.items():
+        for key, val in data.items():
             # Recursively convert the values to Python types if necessary.
-            value[key] = form.fields[key].prepare_value(val)
+            data[key] = form.fields[key].prepare_value(val)
 
-        return value
+        return data

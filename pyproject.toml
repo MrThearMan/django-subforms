@@ -114,6 +114,18 @@ addopts = "--disable-warnings"
 plugins = [
     "mypy_django_plugin.main",
 ]
+exclude = [
+    "^tests/",
+    "^docs/",
+    "^site/",
+]
+
+[[tool.mypy.overrides]]
+module = "bs4"
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "example_project.project.settings"
 
 [build-system]
 requires = ["uv_build>=0.12.24,<0.13.0"]
