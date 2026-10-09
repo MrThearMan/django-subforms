@@ -117,9 +117,58 @@ class DynamicArrayField(forms.Field):
         # (e.g. during local development), Django will fail to convert a Postgres
         # Array to a Python list. In this case, we need to convert the string ourselves,
         # so that the app can still work.
-        if value == "{}":
-            return []
-        return [self.subfield.prepare_value(value[1:-1])]
+        return [self.subfield.prepare_value(item) for item in parse_postgres_array(value)]
+
+
+def parse_postgres_array(value: str) -> list[str | None]:
+    """
+    Parse the text form of a Postgres array, e.g. '{foo,"bar, baz",NULL}', to a list of its top-level items.
+
+    Nested arrays are returned as text, so that the subfield can parse them.
+    """
+    items: list[str | None] = []
+    chars: list[str] = []
+    depth = 0
+    in_quotes = False
+    was_quoted = False
+    escaped = False
+
+    for char in value[1:-1]:
+        if escaped:
+            chars.append(char)
+            escaped = False
+            continue
+
+        # Inside a nested array, quotes and escapes are kept for the subfield to parse.
+        if char in {"\\", '"'} and depth > 0:
+            chars.append(char)
+
+        if char == "\\":
+            escaped = True
+        elif char == '"':
+            in_quotes = not in_quotes
+            was_quoted = was_quoted or depth == 0
+        elif in_quotes:
+            chars.append(char)
+        elif char == "," and depth == 0:
+            items.append(_postgres_array_item(chars, was_quoted=was_quoted))
+            chars = []
+            was_quoted = False
+        else:
+            depth += {"{": 1, "}": -1}.get(char, 0)
+            chars.append(char)
+
+    if chars or was_quoted:
+        items.append(_postgres_array_item(chars, was_quoted=was_quoted))
+
+    return items
+
+
+def _postgres_array_item(chars: list[str], *, was_quoted: bool) -> str | None:
+    item = "".join(chars)
+    if not was_quoted and item.upper() == "NULL":
+        return None
+    return item
 
 
 class NestedFormField(forms.Field):

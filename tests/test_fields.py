@@ -56,6 +56,40 @@ def test_array_field__prepare_value__postgres_array():
     assert field.prepare_value("{foo}") == ["foo"]
 
 
+def test_array_field__prepare_value__postgres_array__multiple_items():
+    field = DynamicArrayField()
+
+    assert field.prepare_value("{foo,bar,baz}") == ["foo", "bar", "baz"]
+
+
+def test_array_field__prepare_value__postgres_array__quoted_items():
+    field = DynamicArrayField()
+
+    value = r'{"foo, bar","say \"hi\"","back\\slash","{}"}'
+
+    assert field.prepare_value(value) == ["foo, bar", 'say "hi"', "back\\slash", "{}"]
+
+
+def test_array_field__prepare_value__postgres_array__null():
+    field = DynamicArrayField()
+
+    assert field.prepare_value('{NULL,"NULL",null}') == [None, "NULL", None]
+
+
+def test_array_field__prepare_value__postgres_array__empty_strings():
+    field = DynamicArrayField()
+
+    assert field.prepare_value('{"",""}') == ["", ""]
+
+
+def test_array_field__prepare_value__postgres_array__nested():
+    field = DynamicArrayField(DynamicArrayField())
+
+    value = r'{{foo,bar},{"baz, }","say \"hi\""}}'
+
+    assert field.prepare_value(value) == [["foo", "bar"], ["baz, }", 'say "hi"']]
+
+
 def test_nested_field__prepare_value__dict():
     field = NestedFormField(FizzBuzzForm)
 
