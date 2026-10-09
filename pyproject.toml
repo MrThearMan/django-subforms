@@ -33,9 +33,9 @@ classifiers = [
     "Intended Audience :: Developers",
     "Natural Language :: English",
 ]
-requires-python = ">=3.11,<4"
-dynamic = [
-    "dependencies",
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2",
 ]
 
 [project.urls]
@@ -44,31 +44,41 @@ dynamic = [
 "Bug Tracker" = "https://github.com/MrThearMan/django-subforms/issues"
 "Documentation" = "https://mrthearman.github.io/django-subforms"
 
-[tool.poetry]
-requires-poetry = ">=2.0.0"
-packages = [
-    { include = "subforms" },
+[dependency-groups]
+# Development installs the library itself, so that "uv run" needs no extra flags.
+dev = [
+    "django-subforms",
+]
+test = [
+    "pytest==9.1.1",
+    "pytest-django==4.14.0",
+    "coverage==7.16.2",
+    "beautifulsoup4==4.15.0",
+    "nox==2026.8.17",
+]
+docs = [
+    "mkdocs==1.6.1",
+    "pymdown-extensions==12.1",
+    "mkdocs-mermaid2-plugin==1.2.3",
+]
+lint = [
+    "pre-commit==4.5.1",
+    "mypy==2.4.0",
+    "django-stubs==6.1.2",
 ]
 
-[tool.poetry.dependencies]
-Django = ">=4.2"
+[tool.uv]
+default-groups = "all"
 
-[tool.poetry.group.test.dependencies]
-pytest = "9.0.2"
-pytest-django = "4.12.0"
-coverage = "7.13.5"
-beautifulsoup4 = "4.14.3"
-nox = "2026.2.9"
+[tool.uv.sources]
+django-subforms = { workspace = true }
 
-[tool.poetry.group.docs.dependencies]
-mkdocs = "1.6.1"
-pymdown-extensions = "10.21.2"
-mkdocs-mermaid2-plugin = "1.2.3"
-
-[tool.poetry.group.lint.dependencies]
-pre-commit = "4.5.1"
-mypy = "1.19.1"
-django-stubs = "6.0.1"
+[tool.uv.build-backend]
+# The package is at the repository root, not under "src".
+module-root = ""
+module-name = [
+    "subforms",
+]
 
 [tool.ruff]
 fix = true
@@ -313,5 +323,5 @@ plugins = [
 ]
 
 [build-system]
-requires = ["poetry-core>=2.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.12.24,<0.13.0"]
+build-backend = "uv_build"
