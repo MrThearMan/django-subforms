@@ -86,29 +86,19 @@ relative_files = true
 branch = true
 include = [
     "subforms/*",
-    "tests/*",  # Make sure all tests are actually run
-]
-omit = [
-    "undine/__main__.py",
 ]
 
 [tool.coverage.report]
-omit = [
-    "tests*",
-    "docs*",
-    ".venv*",
-    ".tox*",
-]
-exclude_lines = [
-    "if TYPE_CHECKING:",
-    "except ImportError:",
-    "pragma: no cover",
-    "pass",
+fail_under = 100
+exclude_also = [
+    'if TYPE_CHECKING:',
 ]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "example_project.project.settings"
-addopts = "--disable-warnings"
+filterwarnings = [
+    "error",
+]
 
 [tool.mypy]
 plugins = [

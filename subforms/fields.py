@@ -36,7 +36,7 @@ class DynamicArrayField(forms.Field):
         **kwargs: Any,
     ) -> None:
         # Compatibility with 'django.contrib.postgres.fields.array.ArrayField'
-        if "base_field" in kwargs:  # pragma: no cover
+        if "base_field" in kwargs:
             subfield = kwargs.pop("base_field")
 
         self.subfield: forms.Field = (
@@ -104,7 +104,7 @@ class DynamicArrayField(forms.Field):
     def validate(self, value: list) -> None:
         pass
 
-    def has_changed(self, initial: Any, data: Any) -> bool:  # pragma: no cover
+    def has_changed(self, initial: Any, data: Any) -> bool:
         if not data and not initial:
             return False
         return super().has_changed(initial, data)
