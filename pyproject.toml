@@ -62,7 +62,8 @@ docs = [
     "mkdocs-mermaid2-plugin==1.2.3",
 ]
 lint = [
-    "pre-commit==4.5.1",
+    "prek==0.5.5",
+    "ruff==0.16.10",
     "mypy==2.4.0",
     "django-stubs==6.1.2",
 ]
