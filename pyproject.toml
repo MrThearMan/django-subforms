@@ -57,9 +57,9 @@ test = [
     "nox==2026.8.17",
 ]
 docs = [
-    "mkdocs==1.6.1",
+    "zensical==0.0.69",
     "pymdown-extensions==12.1",
-    "mkdocs-mermaid2-plugin==1.2.3",
+    "pygments==2.21.0",
 ]
 lint = [
     "prek==0.5.5",

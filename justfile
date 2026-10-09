@@ -27,9 +27,18 @@ deps-tree:
 dev port="8000":
     @uv run python manage.py runserver localhost:{{port}}
 
-# Start the docs server
+# Start a zensical server
 docs port="8080":
-    @uv run mkdocs serve -a localhost:{{port}}
+    @just docs-build
+    @uv run zensical serve -a localhost:{{port}} -o
+
+# Build the zensical docs, including the service worker
+docs-build:
+    @uv run python build_docs.py
+
+# Download a pygments code highlighting theme
+docs-theme style="fruity":
+    @uv run pygmentize -f html -S {{style}} -a .highlight > docs/css/pygments.css
 
 # Generate testing data
 generate:

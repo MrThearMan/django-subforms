@@ -1,3 +1,7 @@
+---
+description: "Django Subforms: wrap Django forms as fields and fields as dynamic arrays."
+---
+
 # Django Subforms
 
 [![Coverage Status][coverage-badge]][coverage]

@@ -1,3 +1,7 @@
+---
+description: "How to report bugs, request features and contribute code to Django Subforms."
+---
+
 # Contributing
 
 Thank you for your interest in contributing!

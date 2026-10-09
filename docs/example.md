@@ -1,3 +1,7 @@
+---
+description: "A full example of a model, a form and an admin that use NestedFormField and DynamicArrayField."
+---
+
 # Example
 
 Given the following model:
