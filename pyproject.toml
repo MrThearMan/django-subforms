@@ -58,12 +58,12 @@ test = [
 ]
 docs = [
     "zensical==0.0.69",
-    "pymdown-extensions==12.1",
+    "pymdown-extensions==12.2",
     "pygments==2.21.0",
 ]
 lint = [
     "prek==0.5.5",
-    "ruff==0.16.10",
+    "ruff==0.17.0",
     "mypy==2.4.0",
     "django-stubs==6.1.2",
 ]
@@ -118,5 +118,5 @@ ignore_missing_imports = true
 django_settings_module = "example_project.project.settings"
 
 [build-system]
-requires = ["uv_build>=0.12.24,<0.13.0"]
+requires = ["uv_build>=0.12.24,<0.14.0"]
 build-backend = "uv_build"
