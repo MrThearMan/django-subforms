@@ -57,13 +57,13 @@ test = [
     "nox==2026.8.17",
 ]
 docs = [
-    "zensical==0.0.69",
-    "pymdown-extensions==12.2",
+    "zensical==0.0.71",
+    "pymdown-extensions==12.3",
     "pygments==2.21.0",
 ]
 lint = [
     "prek==0.5.5",
-    "ruff==0.17.0",
+    "ruff==0.17.1",
     "mypy==2.4.0",
     "django-stubs==6.1.2",
 ]
